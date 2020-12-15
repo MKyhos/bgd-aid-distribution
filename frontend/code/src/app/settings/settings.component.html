@@ -1,0 +1,54 @@
+<div id="settings-panel">
+  <form
+    id="location-form"
+    [formGroup]="this.locationForm"
+    (ngSubmit)="onSubmit(this.locationForm.value)"
+  >
+    <mat-form-field>
+      <mat-label>Latitude</mat-label>
+      <input
+        matInput
+        type="number"
+        placeholder="Latitude"
+        min="-90"
+        max="90"
+        step="0.001"
+        formControlName="latitude"
+      />
+    </mat-form-field>
+    <mat-form-field>
+      <mat-label>Longitude</mat-label>
+      <input
+        matInput
+        type="number"
+        placeholder="Longitude"
+        min="-90"
+        max="90"
+        step="0.001"
+        formControlName="longitude"
+      />
+    </mat-form-field>
+    <button class="button" type="submit" mat-stroked-button>Add Marker</button>
+  </form>
+
+<!--  <form
+    id="location-form"
+    [formGroup]="this.amenityForm"
+    (ngSubmit)="onAmSubmit(this.amenityForm.value)"
+  >
+    <mat-form-field>
+      <mat-label>Amenity</mat-label>
+      <input
+        matInput
+        type="string"
+        placeholder="Amenity"
+        formControlName="amenity"
+      />
+    </mat-form-field>
+    <button class="button" type="submit" mat-stroked-button>Add Amenity</button>
+  </form> -->
+
+  <div class="pubs">
+    <button class="button" (click)="addPubs()" mat-stroked-button>Add Camp Locations</button>
+  </div>
+</div>
