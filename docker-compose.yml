@@ -2,25 +2,31 @@ version: "3"
 
 services:
   database:
-    build: ./database
+    image: kartoza/postgis:12.1
     volumes:
       - database-data:/var/lib/postgresql/data
     ports:
-      - "25432:5432"
-
+      - "45432:5432"
+    env_file:
+      - env/database.env
   backend:
     build: ./backend
     ports:
-      - "5000:5000"
+      - "45000:5000"
     volumes:
       - ./backend/code:/var/opt/gis
-
   frontend:
     build: ./frontend
     ports:
-      - "4200:4200"
+      - "44200:4200"
     volumes:
       - ./frontend/code/src:/var/opt/gis/src
-
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    ports:
+      - "45050:5050"
+    restart: always
+    env_file: 
+      - env/pgadmin.env
 volumes:
   database-data:
