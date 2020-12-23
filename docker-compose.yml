@@ -2,7 +2,7 @@ version: "3"
 
 services:
   database:
-    image: kartoza/postgis:12.1
+    image: postgis/postgis:13-master
     volumes:
       - database-data:/var/lib/postgresql/data
     ports:
