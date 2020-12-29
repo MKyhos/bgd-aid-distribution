@@ -42,6 +42,13 @@ osmosis \
 
 Subsequently, we receive a clipped OSM extract of much smaller size.
 
+```
+osm2pgsql -d gis_db -U gis_user -H localhost \
+  -W -P 45432 --create --prefix=osm \
+  --hstore --proj=3160 \
+  data-research/data_export/bgd_camps.osm.pbf
+```
+
 
 ## Research Overview
 

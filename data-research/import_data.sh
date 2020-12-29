@@ -22,10 +22,17 @@ done
 # Import
 # Assumes everything is in place...
 
-PKG_DIR="data-research/data_export"
+DATA_DIR="data-research/data_export"
 PKG_LAYERS=( poly_shelters poly_camp_boundaries )
 
 # Import OSM Layer Bangladesh
+
+cat "Importing OSM data..."
+
+osm2pgsql -d ${db} -U ${user} -H ${host} \
+  -W -P ${port} --create --prefix=osm \
+  --hstore --proj=3160 \
+  ${DATA_DIR}/data_export/bgd_camps.osm.pbf
 
 # Import
 
@@ -35,20 +42,9 @@ do
     -append \
     -nln ${layer} \
     -f "PostgreSQL" PG:"host=$host user=$user dbname=$db port=$port password=$password" \
-    "${PKG_DIR}/data-collection.gpkg" \
+    "${DATA_DIR}/data-collection.gpkg" \
     "${layer}"
 done  
 
-echo "Imported from Geopackage."
 
-# Executing Database Cleaning Script
-# Get relative path
-
-# full_path=$(realpath $0)
-# dir_path=$(dirname full_path)
-# sql_file="$dir_path/import_clean.sql"
-# 
-# psql -h $host -p $port \
-#   -d $db -u $user \
-#   -f $sql_file
 
