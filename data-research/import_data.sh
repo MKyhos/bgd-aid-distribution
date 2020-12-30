@@ -27,14 +27,16 @@ PKG_LAYERS=( poly_shelters poly_camp_boundaries )
 
 # Import OSM Layer Bangladesh
 
-cat "Importing OSM data..."
+echo "Importing OSM data..."
 
 osm2pgsql -d ${db} -U ${user} -H ${host} \
   -W -P ${port} --create --prefix=osm \
   --hstore --proj=3160 \
-  ${DATA_DIR}/data_export/bgd_camps.osm.pbf
+  ${DATA_DIR}/bgd_camps.osm.pbf
 
 # Import
+
+echo "Import data-collection layers..."
 
 for layer in "${PKG_LAYERS[@]}";
 do
@@ -47,4 +49,4 @@ do
 done  
 
 
-
+echo "Done."
