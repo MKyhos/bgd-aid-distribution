@@ -1,6 +1,7 @@
 import { Component, ViewChild } from '@angular/core';
 import { MapComponent } from './map/map.component';
 import { DataService } from './services/data.service';
+import { FeatureCollection } from 'geojson';
 
 @Component({
   selector: 'app-root',
@@ -26,6 +27,12 @@ export class AppComponent {
    */
   onAddMarker($event: { latitude: number; longitude: number }) {
     this.map.addMarker($event.latitude, $event.longitude);
+  }
+
+  ngAfterViewInit(): void {
+    this.dataservice.getRegions().subscribe((geojson: FeatureCollection) => {
+      this.map.addGeoJSON(geojson);
+    });
   }
 
   /*
