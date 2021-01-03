@@ -42,6 +42,7 @@ osm2pgsql -d ${DB} -U ${USER} -H ${HOST} \
   --hstore --proj=3160 \
   ${DATA_DIR}/bgd_camps.osm.pbf
 
+echo "Imported: OSM data."
 # Import
 
 echo "Import data-collection layers..."
@@ -54,6 +55,7 @@ do
     -f "PostgreSQL" PG:"host=$HOST user=$USER dbname=$DB port=$PORT password=$PASSWORD" \
     "${DATA_DIR}/data-collection.gpkg" \
     "${layer}"
+  echo "Imported: ${layer}."
 done  
 
 echo "Done."
