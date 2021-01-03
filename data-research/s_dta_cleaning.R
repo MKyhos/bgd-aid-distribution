@@ -94,18 +94,8 @@ geo_flood <- geo_fl_01 %>%
   mutate(flood = c(1, 2, 3, 4)) %>%
   select(flood, geometry)
 
-floodings %>%
-  st_bbox() %>%
-  mapview()
-  st_join(y = geo_admin, left = TRUE ) %>%
-  filter(!is.na(camp_id)) %>%
-  select(sensor_date = Sensor_Date, event_code = EventCode, geometry = SHAPE) %>%
-  st_as_sf()
 
 
-floodings()
-
-#' == Rectangular Data ==
 
 dta_population <- readxl::read_xlsx(
   here("data-research/data_raw/population_74678.xlsx"),
@@ -116,6 +106,72 @@ dta_population <- readxl::read_xlsx(
     values_to = "count") %>% 
   inner_join(camp_information, by = c("camp_name" = "camp_name", "block" = "block_name")) %>%
   select(camp_id, block_id, variable, count)
+
+
+# Compile potential camp level data:
+
+
+
+# Geo Point Infrastructure
+dta_health_facilty <- readxl::read_xlsx(
+  here("data-research/data_raw/reach/reach_bgd_data_whohealthservices_12122017.xlsx"),
+  sheet = 2) %>%
+  select(
+    type = 'Facility type', status = 'Operational Status',
+    lon = Longitude, lat = Latitude) %>%
+  mutate(class = "health_service") %>%
+  st_as_sf(coords = c("lon", "lat"), crs = 4326) %>%
+  st_transform(crs = 3160)
+
+dta_tubewells <- readxl::read_xlsx(
+  here("data-research/data_raw/reach/reach_bgd_dataset_tubewell-coding_july_2019.xlsx"),
+  sheet = "REACH_BGD_dataset_Tubewell codi") %>%
+  select(sanitary_inspection_score, contamination_risk_score,
+    lon = "GPS Longitude", lat = "GPS Latitude") %>%
+  mutate(class = "tubewell") %>%
+  st_as_sf(coords = c("lon", "lat"), crs = 4326) %>%
+  st_transform(crs = 3160)
+
+dta_sanitation <- readxl::read_xlsx(
+  here("data-research/data_raw/reach/reach_bgd_dataset_sanitation-infrastructure-coding_nov2019.xls"),
+  sheet = "Main_Database") %>%
+  select(type = struc_type, lon, lat) %>%
+  mutate(class = "sanitation") %>%
+  st_as_sf(coords = c("lon", "lat"), crs = 4326) %>%
+  st_transform(crs = 3160)
+
+dta_womenfriendly <- readxl::read_xlsx(
+  here("data-research/data_raw/reach/reach_bgd_who_womenfriendlyspace_clean_15112017.xlsx"),
+  sheet = 1) %>%
+  select(lat = "_geopoint_latitude", lon = "_geopoint_longitude") %>%
+  mutate(class = "women_protection") %>%
+  st_as_sf(coords = c("lon", "lat"), crs = 4326) %>%
+  st_transform(crs = 3160)
+
+dta_nutrition <- readxl::read_xlsx(
+  here("data-research/data_raw/reach/reach_bgd_who_nutritionservices_clean_15112017.xlsx"),
+  sheet = 1) %>%
+  select(lat = "_geopoint_latitude", lon = "_geopoint_longitude") %>%
+  mutate(class = "nutrition_service") %>%
+  st_as_sf(coords = c("lon", "lat"), crs = 4326) %>%
+  st_transform(crs = 3160)
+
+geo_reach_infra <- bind_rows(
+  dta_tubewells,
+  dta_sanitation,
+  dta_health_facilty,
+  dta_womenfriendly,
+  dta_nutrition) %>%
+  st_as_sf() %>%
+  select(class, type, geometry, type, sanitary_inspection_score, contamination_risk_score)
+
+
+
+
+dta_camp <- bind_rows(
+  mutate(dta_population, about = "population")
+)
+
 
 # Export:
 export_file <- here("data-research/data_export/data-collection.gpkg")
@@ -128,7 +184,12 @@ write_sf(
   obj = geo_flood,
   dsn = export_file,
   layer = "geo_floods")
+write_sf(
+  obj = geo_reach_infra,
+  dsn = export_file,
+  layer = "geo_reach_infra"
+)
 
 # Recangular data
-
 readr::write_csv(dta_population, "data-research/data_export/dta_population_block.csv")
+readr::write_csv(dta_camp, "data-research/data_export/dta_camp.csv")
