@@ -55,21 +55,44 @@ geo_admin <- geo_outline_a2 %>%
   arrange(sblock_id) %>%
   st_as_sf()
 
+geo_admin_buffer <- geo_admin %>%
+  st_union() %>% 
+  st_buffer(dist = 20000)
+
 flood_layers <- c(
   "NOAA_20200712_20200721_FloodExtent_Bangladesh",
   "NOAA_20200723_20200727_FloodExtent_Bangladesh",
-  "NOAA_20200729_20200802_FloodExtent_Bangladesh"
-)
+  "NOAA_20200729_20200802_FloodExtent_Bangladesh")
 
-for (i in 1:3) {
-  
-
-}
-
-floodings <- read_sf(
+geo_fl_01 <- read_sf(
   here("data-research/data_raw/floodings/FL20200713BGD.gdb"),
-  layer = "ST1_20200719_FloodExtent_Bangladesh") %>%
-  st_transform(crs = 3160)
+  layer = flood_layers[1]) %>%
+  st_transform(crs = 3160) %>%
+  select(sensor_date = Sensor_Date, geometry = SHAPE) %>%
+  st_make_valid() %>%
+  st_intersection(geo_admin_buffer)
+  
+geo_fl_02 <- read_sf(
+  here("data-research/data_raw/floodings/FL20200713BGD.gdb"),
+  layer = flood_layers[2]) %>%
+  st_transform(crs = 3160) %>%
+  select(sensor_date = Sensor_Date, geometry = SHAPE) %>%
+  st_make_valid() %>%
+  st_intersection(geo_admin_buffer)
+
+geo_fl_03 <- read_sf(
+  here("data-research/data_raw/floodings/FL20200713BGD.gdb"),
+  layer = flood_layers[3]) %>%
+  st_transform(crs = 3160) %>%
+  select(sensor_date = Sensor_Date, geometry = SHAPE) %>%
+  st_make_valid() %>%
+  st_intersection(geo_admin_buffer)
+
+geo_flood <- geo_fl_01 %>%
+  st_union(geo_fl_02) %>%
+  st_union(geo_fl_03) %>%
+  mutate(flood = c(1, 2, 3, 4)) %>%
+  select(flood, geometry)
 
 floodings %>%
   st_bbox() %>%
@@ -101,8 +124,10 @@ write_sf(
   obj = geo_admin,
   dsn = export_file,
   layer = "geo_admin")
-
-
+write_sf(
+  obj = geo_flood,
+  dsn = export_file,
+  layer = "geo_floods")
 
 # Recangular data
 
