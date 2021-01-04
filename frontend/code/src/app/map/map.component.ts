@@ -1,5 +1,7 @@
 import { Component, Input, OnInit } from '@angular/core';
+import { Feature, FeatureCollection, Geometry, MultiPolygon } from 'geojson';
 import * as L from 'leaflet';
+import * as d3 from 'd3';
 
 @Component({
   selector: 'app-map',
@@ -69,7 +71,7 @@ export class MapComponent implements OnInit {
     L.Marker.prototype.options.icon = iconDefault;
 
     // basic setup, create a map in the div with the id "map"
-    this.map = L.map('map').setView([21.24, 92.095], 5);
+    this.map = L.map('map').setView([21.0, 92.29], 10);
 
     // set a tilelayer, e.g. a world map in the background
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -94,4 +96,61 @@ export class MapComponent implements OnInit {
 
     marker.addTo(this.map);
   }
+
+  /**
+ * Add a GeoJSON FeatureCollection to this map
+ * @param latitude
+ */
+public addGeoJSON(geojson: FeatureCollection): void {
+  // find maximum numbars value in array
+  let max = d3.max(
+    geojson.features.map((f: Feature<Geometry, any>) => +f.properties.numbars)
+  );
+
+  // if max is undefined, enforce max = 1
+  if (!max) {
+    max = 1;
+  }
+
+  const colorscale = d3
+    .scaleSequential()
+    .domain([0, max])
+    .interpolator(d3.interpolateViridis);
+
+  // each feature has a custom style
+  const style = (feature: Feature<Geometry, any> | undefined) => {
+    const numbars = feature?.properties?.numbars
+      ? feature.properties.numbars
+      : 0;
+
+    return {
+      fillColor: colorscale(numbars),
+      weight: 2,
+      opacity: 1,
+      color: 'white',
+      dashArray: '3',
+      fillOpacity: 0.7,
+    };
+  };
+
+  // each feature gets an additional popup!
+  const onEachFeature = (feature: Feature<Geometry, any>, layer: L.Layer) => {
+    if (
+      feature.properties &&
+      feature.properties.name &&
+      typeof feature.properties.numbars !== 'undefined'
+    ) {
+      layer.bindPopup(
+        `${feature.properties.name} has ${feature.properties.numbars} square meters`
+      );
+    }
+  };
+
+  // create one geoJSON layer and add it to the map
+  const geoJSON = L.geoJSON(geojson, {
+    onEachFeature,
+    style,
+  });
+  geoJSON.addTo(this.map);
+}
 }

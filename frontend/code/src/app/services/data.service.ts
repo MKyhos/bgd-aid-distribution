@@ -1,16 +1,11 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { FeatureCollection } from 'geojson';
 
 const httpOptions = {
   headers: new HttpHeaders({
     'Content-Type': 'application/json',
-  }),
-};
-
-const httpOptionsAm = {
-  headers: new HttpHeaders({
-    'Content-Type': 'application/json'
   }),
 };
 
@@ -44,4 +39,14 @@ export class DataService {
     >(url, {amenity}, httpOptions);
 
   }
+
+  public getAdminLevel(adminLevel: string): Observable<FeatureCollection> {
+    const url = 'http://localhost:5000/adminLevel';
+    return this.http.post<FeatureCollection>(url, {adminLevel}, httpOptions);
+
+  }
+  public getRegions(): Observable<FeatureCollection> {
+    const url = 'http://localhost:5000/regions';
+    return this.http.post<FeatureCollection>(url, {}, httpOptions);
+}
 }

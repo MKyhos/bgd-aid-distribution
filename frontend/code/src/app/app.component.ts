@@ -1,6 +1,7 @@
 import { Component, ViewChild } from '@angular/core';
 import { MapComponent } from './map/map.component';
 import { DataService } from './services/data.service';
+import { FeatureCollection } from 'geojson';
 
 @Component({
   selector: 'app-root',
@@ -28,12 +29,29 @@ export class AppComponent {
     this.map.addMarker($event.latitude, $event.longitude);
   }
 
+  ngAfterViewInit(): void {
+    this.dataservice.getRegions().subscribe((geojson: FeatureCollection) => {
+      this.map.addGeoJSON(geojson);
+    });
+  }
+
   /*
    * Retrieve pubs from backend and override the member variable.
    */
   onPubsAdded() {
     this.dataservice.getPubs().subscribe((pubs) => {
       this.amenities = pubs;
+    });
+  }
+
+  // adminLevel
+  onAdminLevelAdded($event: { adminLevel: string}){
+    console.log('happened');
+
+    this.dataservice.getAdminLevel($event.adminLevel).subscribe((geojson: FeatureCollection)=>{
+      this.map.addGeoJSON(geojson);
+      //console.log(this.adminLevel);
+
     });
   }
 

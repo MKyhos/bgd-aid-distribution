@@ -47,8 +47,23 @@
     </mat-form-field>
     <button class="button" type="submit" mat-stroked-button>Add Amenity</button>
   </form> -->
+  <form
+    id="admin-form"
+    [formGroup]="this.adminForm"
+    (change)="onAdSubmit(this.adminForm.value)"
+  >
+    <mat-form-field appearance="fill">
+      <mat-label>Administrative Level</mat-label>
+      <select matNativeControl required formControlName=adminLevel>
+        <option value="site">Site</option>
+        <option value="camp">Camp</option>
+        <option value="block">Block</option>
+        <option value="subblock">Sub-Block</option>
+      </select>
+    </mat-form-field>
+  </form>
 
-  <div class="pubs">
+<!--  <div class="pubs">
     <button class="button" (click)="addPubs()" mat-stroked-button>Add Camp Locations</button>
   </div>
-</div>
+</div> -->
