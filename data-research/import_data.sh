@@ -29,10 +29,16 @@ PASSWORD=gis_pass
 
 # Defne local directory paths etc:
 DATA_DIR="data-research/data_export"
-PKG_LAYERS=( poly_shelters poly_camp_boundaries )
+PKG_LAYERS=( geo_admin geo_floods geo_reach_infra )
 
 # Import
-# Assumes everything is in place...
+
+# Create hstore if not exists yet.
+echo "Create hstore extension in DB."
+
+psql \
+  -d ${DB} -U ${USER} -h ${HOST} -p ${PORT} \
+  -c "CREATE EXTENSION IF NOT EXISTS hstore;"
 
 # Import OSM Layer Bangladesh
 echo "Importing OSM data..."
@@ -57,5 +63,21 @@ do
     "${layer}"
   echo "Imported: ${layer}."
 done  
+
+
+echo "Import rectangular data"
+
+Rscript data-research/import_csv.R
+
+
+echo "Run cleaning SQL script"
+psql \
+  -h ${HOST} -U ${USER} -p ${PORT} -d ${DB} \
+  -f data-research/import_clean.sql
+
+
+# Create Functions:
+
+
 
 echo "Done."
