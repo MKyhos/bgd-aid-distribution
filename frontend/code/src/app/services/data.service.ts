@@ -39,6 +39,12 @@ export class DataService {
     >(url, {amenity}, httpOptions);
 
   }
+
+  public getAdminLevel(adminLevel: string): Observable<FeatureCollection> {
+    const url = 'http://localhost:5000/adminLevel';
+    return this.http.post<FeatureCollection>(url, {adminLevel}, httpOptions);
+
+  }
   public getRegions(): Observable<FeatureCollection> {
     const url = 'http://localhost:5000/regions';
     return this.http.post<FeatureCollection>(url, {}, httpOptions);

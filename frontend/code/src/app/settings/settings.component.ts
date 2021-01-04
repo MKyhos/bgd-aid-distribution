@@ -18,6 +18,12 @@ export class SettingsComponent {
   @Output()
   pubsAdded: EventEmitter<boolean> = new EventEmitter<boolean>();
 
+  // adminlevel
+  @Output()
+  adminLevelAdded: EventEmitter<{
+    adminLevel: string;
+  }> = new EventEmitter<{ adminLevel: string }>();
+
   // amenity type listenable in parent
   @Output()
   amenityAdded: EventEmitter<{
@@ -28,23 +34,31 @@ export class SettingsComponent {
   // location form stores and validates the inputs from our forms defined in the html document
   locationForm: FormGroup;
   // amenity form
-  amenityForm: FormGroup;
+  //amenityForm: FormGroup;
+
+  // admin form
+  adminForm: FormGroup;
 
   constructor(private fb: FormBuilder) {
     this.locationForm = fb.group({
-      latitude: fb.control(21.24, [
+      latitude: fb.control(21.072, [
         Validators.required,
         Validators.min(-90),
         Validators.max(90),
       ]),
-      longitude: fb.control(92.09, [
+      longitude: fb.control(92.29, [
         Validators.required,
         Validators.min(-180),
         Validators.max(180),
       ]),
     });
-    this.amenityForm = fb.group({
-      amenity: fb.control('shelter', [
+  //  this.amenityForm = fb.group({
+  //    amenity: fb.control('shelter', [
+  //      Validators.required,
+  //    ]),
+  //  });
+    this.adminForm = fb.group({
+      adminLevel: fb.control('camp', [
         Validators.required,
       ]),
     });
@@ -64,6 +78,11 @@ export class SettingsComponent {
    */
   addPubs(): void {
     this.pubsAdded.emit(true);
+  }
+
+  onAdSubmit(adminLevel: { adminLevel: string}): void {
+    this.adminLevelAdded.emit(adminLevel);
+    //console.log(adminLevel);
   }
 
 

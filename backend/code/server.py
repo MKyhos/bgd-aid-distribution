@@ -29,7 +29,7 @@ def pubs():
 def regions():
     # query to find the number of bars per 1000 (rounded by 4) and pubs as well as number of people.
     # Note: Didn't have population data on 3 Communities, which I decided to exclude for now. Tough day...
-    query = """select npm_name, area_sqm, ST_AsGeoJSON(shape) as geometry from outlines0"""
+    query = """select camp.npm_name as npm_name, area_sqm, ST_AsGeoJSON(shape) as geometry from camp"""
 
     # get results
     with psycopg2.connect(host="database", port=5432, dbname="gis_db", user="gis_user", password="gis_pass") as conn:
@@ -54,3 +54,38 @@ def regions():
     return jsonify({
         "type": "FeatureCollection", "features": geojsons
     }), 200
+
+@app.route('/adminLevel', methods=['GET', "POST"])
+def adminLevel():
+    adminLevel = request.get_json()["adminLevel"]
+
+    if adminLevel == 'camp':
+        query = """select camp.npm_name as npm_name, area_sqm, ST_AsGeoJSON(shape) as geometry from camp"""
+    elif adminLevel == 'block':
+        query = """select block.npm_cname as npm_name, area_sqm, ST_AsGeoJSON(shape) as geometry from block"""
+    elif adminLevel == 'subblock':
+        query = """select npm_cname as npm_name, area_sqm, ST_AsGeoJSON(shape) as geometry from subblock"""
+    else:
+        query = """select pop."name" as npm_name, way_area as area_sqm, ST_AsGeoJSON(way) as geometry from planet_osm_polygon pop where name like '%Kutupalong%'"""
+    # get results
+    with psycopg2.connect(host="database", port=5432, dbname="gis_db", user="gis_user", password="gis_pass") as conn:
+        with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+            cursor.execute(query)
+            results = cursor.fetchall()
+
+
+    # convert results to a GeoJSON
+    geojsons = []
+    for result in results:
+        geojsons.append({
+            "type": "Feature",
+            "properties": {
+                "name": result['npm_name'],
+                "numbars": float(result['area_sqm'])
+            },
+            "geometry": json.loads(result['geometry'])
+        })
+
+        # return all results as a feature collection
+    return jsonify({"type": "FeatureCollection", "features": geojsons
+        }), 200

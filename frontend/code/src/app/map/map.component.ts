@@ -71,7 +71,7 @@ export class MapComponent implements OnInit {
     L.Marker.prototype.options.icon = iconDefault;
 
     // basic setup, create a map in the div with the id "map"
-    this.map = L.map('map').setView([21.24, 92.095], 5);
+    this.map = L.map('map').setView([21.0, 92.29], 10);
 
     // set a tilelayer, e.g. a world map in the background
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -141,9 +141,7 @@ public addGeoJSON(geojson: FeatureCollection): void {
       typeof feature.properties.numbars !== 'undefined'
     ) {
       layer.bindPopup(
-        `${feature.properties.name} has ${feature.properties.numbars} bar${
-          feature.properties.numbars > 0 ? 's' : ''
-        } per 1000 inhabitants`
+        `${feature.properties.name} has ${feature.properties.numbars} square meters`
       );
     }
   };

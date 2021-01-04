@@ -44,6 +44,17 @@ export class AppComponent {
     });
   }
 
+  // adminLevel
+  onAdminLevelAdded($event: { adminLevel: string}){
+    console.log('happened');
+
+    this.dataservice.getAdminLevel($event.adminLevel).subscribe((geojson: FeatureCollection)=>{
+      this.map.addGeoJSON(geojson);
+      //console.log(this.adminLevel);
+
+    });
+  }
+
   onAmenitiesAdded($event: { amenity: string }) {
     this.dataservice.getAmenities($event.amenity).subscribe((amenities) => {
     this.amenities = amenities;
