@@ -7,6 +7,17 @@ library(magrittr)
 library(sf)
 library(here)
 library(mapview) # For exploration.
+library(DBI)
+
+
+db <- DBI::dbConnect(
+  RPostgres::Postgres(),
+  host = "localhost",
+  user = "gis_user",
+  dbname = "gis_db",
+  port = 45432
+)
+
 
 #' Import
 #' 
@@ -166,11 +177,36 @@ geo_reach_infra <- bind_rows(
   select(class, type, geometry, type, sanitary_inspection_score, contamination_risk_score)
 
 
+#' Map Population to sblock level: 
+#' For this, we weight by number of buildings in a subblock. Based on that
+#' share, the block population is distributed.
 
+dta_buildings_sblock <- dbGetQuery(
+  conn = db,
+  statement = "
+    SELECT block_id, sblock_id, COALESCE(Count(*), 0) AS count
+    FROM geo_admin AS g
+    LEFT JOIN osm_polygon AS o ON ST_Covers(g.geom, o.way)
+    WHERE o.building = 'yes'
+    GROUP BY 1, 2
+    ORDER BY 1;") %>%
+  tibble::as_tibble()
 
-dta_camp <- bind_rows(
-  mutate(dta_population, about = "population")
-)
+dta_population_sblock <- dta_buildings_sblock %>%
+  group_by(block_id) %>%
+  mutate(building_share = count / sum(count)) %>%
+  ungroup() %>%
+  select(-count) %>%
+  left_join(dta_population, by = "block_id") %>%
+  mutate(est_count = round(count * building_share)) %>%
+  select(block_id, sblock_id, variable, est_count)
+
+dta_sblock <- dta_population_sblock %>%
+  mutate(variable = paste0("pop_", variable)) %>%
+  filter(!is.na(variable) & variable != "NA") %>%
+  select(-block_id) %>%
+  tidyr::pivot_wider(names_from = variable, values_from = est_count) %>%
+  select(-pop_NA)
 
 
 # Export:
@@ -191,5 +227,6 @@ write_sf(
 )
 
 # Recangular data
+readr::write_csv(dta_sblock, "data-research/data_export/dta_sblock.csv")
 readr::write_csv(dta_population, "data-research/data_export/dta_population_block.csv")
 readr::write_csv(dta_camp, "data-research/data_export/dta_camp.csv")
