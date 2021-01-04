@@ -5,7 +5,20 @@
 1. docker-compose up
 
 2. open in http://localhost:4200/
- 
+
+
+### If d3 is not installed:
+1. Enter your frontend container
+
+docker exec -it bgd-aid-distribution_frontend_1 /bin/bash
+
+
+2. Run the following two commands:
+
+npm install d3 --save
+
+npm install @types/d3 --save-dev
+
 
 ### To upload the data
 
@@ -29,18 +42,3 @@ ALTER TABLE public.t200908_rrc_outline_block_al2 RENAME TO block;
 ALTER TABLE public.t200908_rrc_outline_subblock_al3 RENAME TO subblock;
 
 ALTER TABLE public.t200908_rrc_outline_camp_al1 RENAME TO camp;
-
-
-
-### If d3 is not installed:
-1. Enter your frontend container
-
-docker exec -it bgd-aid-distribution_frontend_1 /bin/bash
-
-
-2. Run the following two commands:
-
-npm install d3 --save
-
-npm install @types/d3 --save-dev
-
