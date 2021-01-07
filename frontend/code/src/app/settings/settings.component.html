@@ -61,9 +61,16 @@
         <option value="subblock">Sub-Block</option>
       </select>
     </mat-form-field>
+    <mat-form-field appearance="fill">
+      <mat-label>Unit of interest</mat-label>
+      <select matNativeControl required formControlName=unitInterest>
+        <option value="families">Families</option>
+        <option value="individuals">Individuals</option>
+      </select>
+    </mat-form-field>
   </form>
 
 <!--  <div class="pubs">
-    <button class="button" (click)="addPubs()" mat-stroked-button>Add Camp Locations</button>
+    <button class="button" (click)="addPubs()" mat-stroked-button>Add Health Facilities</button>
   </div>
 </div> -->

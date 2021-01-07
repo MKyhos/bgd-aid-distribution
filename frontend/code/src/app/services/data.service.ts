@@ -6,6 +6,7 @@ import { FeatureCollection } from 'geojson';
 const httpOptions = {
   headers: new HttpHeaders({
     'Content-Type': 'application/json',
+    'Access-Control-Allow-Origin': '*'
   }),
 };
 
@@ -40,9 +41,9 @@ export class DataService {
 
   }
 
-  public getAdminLevel(adminLevel: string): Observable<FeatureCollection> {
+  public getAdminLevel(adminLevel: string, unitInterest: string): Observable<FeatureCollection> {
     const url = 'http://localhost:5000/adminLevel';
-    return this.http.post<FeatureCollection>(url, {adminLevel}, httpOptions);
+    return this.http.post<FeatureCollection>(url, {adminLevel, unitInterest}, httpOptions);
 
   }
   public getRegions(): Observable<FeatureCollection> {
