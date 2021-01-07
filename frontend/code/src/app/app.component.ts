@@ -29,9 +29,10 @@ export class AppComponent {
     this.map.addMarker($event.latitude, $event.longitude);
   }
 
+  // set initial admin level and unit of interest to be loaded
   ngAfterViewInit(): void {
-    this.dataservice.getRegions().subscribe((geojson: FeatureCollection) => {
-      this.map.addGeoJSON(geojson);
+    this.dataservice.getAdminLevel('camp', 'individuals').subscribe((geojson: FeatureCollection, adminLevel: string, unitInterest: string) => {
+      this.map.addGeoJSON(geojson, 'camp', 'individuals');
     });
   }
 
@@ -45,11 +46,11 @@ export class AppComponent {
   }
 
   // adminLevel
-  onAdminLevelAdded($event: { adminLevel: string}){
-    console.log('happened');
+  onAdminLevelAdded($event: { adminLevel: string; unitInterest: string}){
+    //console.log(unitInterest);
 
-    this.dataservice.getAdminLevel($event.adminLevel).subscribe((geojson: FeatureCollection)=>{
-      this.map.addGeoJSON(geojson);
+    this.dataservice.getAdminLevel($event.adminLevel, $event.unitInterest).subscribe((geojson: FeatureCollection, adminLevel: string, unitInterest: string)=>{
+      this.map.addGeoJSON(geojson, $event.adminLevel, $event.unitInterest);
       //console.log(this.adminLevel);
 
     });

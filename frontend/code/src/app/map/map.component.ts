@@ -101,8 +101,11 @@ export class MapComponent implements OnInit {
  * Add a GeoJSON FeatureCollection to this map
  * @param latitude
  */
-public addGeoJSON(geojson: FeatureCollection): void {
+public addGeoJSON(geojson: FeatureCollection, adminLevel: string, unitInterest: string): void {
   // find maximum numbars value in array
+
+
+
   let max = d3.max(
     geojson.features.map((f: Feature<Geometry, any>) => +f.properties.numbars)
   );
@@ -141,7 +144,7 @@ public addGeoJSON(geojson: FeatureCollection): void {
       typeof feature.properties.numbars !== 'undefined'
     ) {
       layer.bindPopup(
-        `${feature.properties.name} has ${feature.properties.numbars} square meters`
+        `${adminLevel} ${feature.properties.name} has ${feature.properties.numbars} ${unitInterest}`
       );
     }
   };

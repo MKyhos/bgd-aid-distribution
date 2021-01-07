@@ -22,7 +22,9 @@ export class SettingsComponent {
   @Output()
   adminLevelAdded: EventEmitter<{
     adminLevel: string;
-  }> = new EventEmitter<{ adminLevel: string }>();
+    unitInterest: string;
+  }> = new EventEmitter<{ adminLevel: string; unitInterest: string }>();
+
 
   // amenity type listenable in parent
   @Output()
@@ -59,8 +61,11 @@ export class SettingsComponent {
   //  });
     this.adminForm = fb.group({
       adminLevel: fb.control('camp', [
-        Validators.required,
-      ]),
+        Validators.required      ]),
+      unitInterest: fb.control('individuals', [
+        Validators.required
+      ])
+
     });
   }
 
@@ -80,14 +85,11 @@ export class SettingsComponent {
     this.pubsAdded.emit(true);
   }
 
-  onAdSubmit(adminLevel: { adminLevel: string}): void {
+  onAdSubmit(adminLevel: { adminLevel: string; unitInterest: string}): void {
     this.adminLevelAdded.emit(adminLevel);
     //console.log(adminLevel);
   }
 
 
-  onAmSubmit(amenity: { amenity: string}): void {
-    this.amenityAdded.emit(amenity);
-
+    //console.log(adminLevel);
   }
-}
