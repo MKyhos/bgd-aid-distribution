@@ -5,19 +5,20 @@ University of Konstanz, winter term 2020/2021.
 
 ## Substantial motivation
 
-- This is a course assignment.
-- TODO: write summary from project proposal doc.
+This is a course assignment. TODO: write summary from project proposal doc.
 
 ## Infrastructure overview
 
-Following the general layout advocated by Paul Ramsey / CrunchyData, this
-project branch aims to follow the following recommendations:
+This branch tries to follow the recommendations advocated by Paul Ramsey
+and Crunchy Data, that is in particular: rely heavily on PostgreSQL and PostGIS
+for the computations, use small lightweight micro services as a link to
+the application user interface.
 
-- Heavily rely on PostgreSQL / PostGIS for computation and data preparation, e.g.
-  by implementing logic etc. in SQL functions.
-- Use a lightweight micro service for vector feature serving, namely
-  `pg_featureserv`.
-- Start with a simple frontend layer, iterate on adding more features there.
+As of now, we have a data alyer with PostgreSQL/PostGIS for data storage and
+calculation. The logic etc. is wrapped inside PostgreSQL functions, e.g. by
+using `Pl/pgsql`. Selected functions and tables are exposed using
+`pg_featureserv`, a lightweight RESTful web service written in Go 
+(see [here](https://access.crunchydata.com/documentation/pg_featureserv/latest/)).
 
 From CrunchyData, the general layout can be schematically represented by the
 following figure.
@@ -71,7 +72,25 @@ TODO: Create schema graphic.
 **Check if everything is up in place:**
 
 - As long as the frontend is not fully available, checkout `localhost:9000`,
- where the landing page of `pg_featureserv` is located.
+ where the landing page of `pg_featureserv` is located. Check whether collections
+ (tables) and functions are provided as expected.
+
+
+### Develop
+
+For changes in SQL functions, pass the respective SQL file to the database e.g.
+using 
+
+```zsh 
+psql ${PG_URI} -f db-calculation-src/functions.sql
+```
+
+Make sure that the function declarations start with `CREATE OR REPLACE FUNCTION`.
+Also, remember that the same function name can be used with different
+signatures, that is, drop old function/signature versions with
+`DROP FUNCTION fun_name(signature)` beforehead.
+
+
    
 ## Contribution 
 
