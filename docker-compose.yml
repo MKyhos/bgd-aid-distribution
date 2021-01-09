@@ -6,25 +6,21 @@ services:
     volumes:
       - database-data:/var/lib/postgresql/data
     ports:
-      - "45432:5432"
+      - "${PG_PORT}:5432"
     env_file:
       - env/database.env
-  backend:
-    build: ./backend
+  pg_featureserv:
+    image: pramsey/pg_featureserv:CI
+    env_file:
+      - env/pg_featureserv.env
     ports:
-      - "45000:5000"
-    volumes:
-      - ./backend/code:/var/opt/gis
-  frontend:
-    build: ./frontend
-    ports:
-      - "44200:4200"
-    volumes:
-      - ./frontend/code/src:/var/opt/gis/src
+      - "9000:9000"
+    depends_on:
+      - "database"
   pgadmin:
     image: dpage/pgadmin4:latest
     ports:
-      - "45050:5050"
+      - "25050:${PGA_LISTEN_PORT}"
     restart: always
     env_file: 
       - env/pgadmin.env
