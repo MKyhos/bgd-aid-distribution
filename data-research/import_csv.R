@@ -2,9 +2,6 @@
 # Superior to bash as it has to to be defined beforehand
 # how the table is created.
 
-library(DBI)
-library(readr)
-library(here)
 
 # Connection
 db <- DBI::dbConnect(
@@ -19,7 +16,7 @@ db <- DBI::dbConnect(
 
 # Import
 
-dta_sblock <- readr::read_csv(here("data-research/data_export/dta_sblock.csv"))
+dta_sblock <- read.csv(here::here("data-research/data_export/dta_sblock.csv"))
 
 DBI::dbWriteTable(
   conn = db,
@@ -28,3 +25,4 @@ DBI::dbWriteTable(
   overwrite = TRUE
 )
 
+DBI::dbDisconnect(db)
