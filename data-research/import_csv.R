@@ -9,10 +9,11 @@ library(here)
 # Connection
 db <- DBI::dbConnect(
   RPostgres::Postgres(),
-  host = "localhost",
-  user = "gis_user",
-  dbname = "gis_db",
-  port = 45432
+  host = Sys.getenv("PG_HOST"),
+  user = Sys.getenv("PG_USER"),
+  dbname = Sys.getenv("PG_DB"),
+  password = Sys.getenv("PG_PASSWORD"),
+  port = Sys.getenv("PG_PORT")
 )
 
 

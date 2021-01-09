@@ -7,25 +7,6 @@
 # -d database name
 # -u username
 
-# For local developtment, pass constants.
-# #TODO change for prod.
-PORT=45432
-HOST=localhost
-DB=gis_db
-USER=gis_user
-PASSWORD=gis_pass
-
-# Pass over arguments:
-# while getopts p:h:d:u:x: flag
-# do
-#   case "${flag}" in
-#     p) PORT=${OPTARG};;
-#     h) HOST=${OPTARG};;
-#     d) DB=${OPTARG};;
-#     u) USER=${OPTARG};;
-#     x) PASSWORD=${OPTARG};;
-#   esac
-# done
 
 # Defne local directory paths etc:
 DATA_DIR="data-research/data_export"
@@ -37,14 +18,14 @@ PKG_LAYERS=( geo_admin geo_floods geo_reach_infra )
 echo "Create hstore extension in DB."
 
 psql \
-  -d ${DB} -U ${USER} -h ${HOST} -p ${PORT} \
+  ${PG_URI} \
   -c "CREATE EXTENSION IF NOT EXISTS hstore;"
 
 # Import OSM Layer Bangladesh
 echo "Importing OSM data..."
 
-osm2pgsql -d ${DB} -U ${USER} -H ${HOST} \
-  -W -P ${PORT} --create --prefix=osm \
+osm2pgsql -d ${PG_URI} \
+  --create --prefix=osm \
   --hstore --proj=3160 \
   ${DATA_DIR}/bgd_camps.osm.pbf
 
@@ -58,7 +39,7 @@ do
   ogr2ogr \
     -append \
     -nln ${layer} \
-    -f "PostgreSQL" PG:"host=$HOST user=$USER dbname=$DB port=$PORT password=$PASSWORD" \
+    -f "PostgreSQL" PG:"host=$PG_HOST user=$PG_USER dbname=$PG_DB port=$PG_PORT password=$PG_PASSWORD" \
     "${DATA_DIR}/data-collection.gpkg" \
     "${layer}"
   echo "Imported: ${layer}."
@@ -72,7 +53,7 @@ Rscript data-research/import_csv.R
 
 echo "Run cleaning SQL script"
 psql \
-  -h ${HOST} -U ${USER} -p ${PORT} -d ${DB} \
+  ${PG_URI} \
   -f data-research/import_clean.sql
 
 
