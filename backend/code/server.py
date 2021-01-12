@@ -57,10 +57,17 @@ def adminLevel():
     query = """with subblockdat as(select sblock_id as id, coalesce (pop_n_individuals, 0) as individuals, coalesce(pop_n_family, 0) as families from dta_sblock ds),
 blockdat as(select block_id as id, coalesce(sum(pop_n_individuals), 0) as individuals, coalesce(sum(pop_n_family), 0) as families from dta_sblock ds group by (block_id)),
 campdat as(select camp_id as id, coalesce(sum(pop_n_individuals), 0) as individuals, coalesce(sum(pop_n_family), 0) as families from dta_sblock ds group by (camp_id)),
-camp as (select ssid as ssid, shape, area_sqm from camp),
-block as (select block_ssid as ssid, shape, area_sqm from block),
-subblock as (select subblock_1 as ssid, shape, area_sqm from subblock)
-select id, {2} as count, ST_AsGeoJSON(shape) as geometry from {1} bd join {0} bl on bd.id=bl.ssid  """.format(adminLevel, adminLevel+"dat", unitInterest)
+tube as (select tw.id_number, st_setsrid(st_makepoint(tw."gps longitude", tw."gps latitude"), 4326) as healthsite, tw.sanitary_inspection_score from tubewell tw),
+camp_tube as (select ssid as ssid, id_number, shape, area_sqm, healthsite, sanitary_inspection_score from camp s left join tube t on ST_Contains(s.shape, t.healthsite)),
+block_tube as (select block_ssid as ssid,id_number, shape, area_sqm, healthsite, sanitary_inspection_score from block s left join tube t on ST_Contains(s.shape, t.healthsite)),
+subblock_tube as (select subblock_1 as ssid, id_number, shape, area_sqm, healthsite, sanitary_inspection_score from subblock s left join tube t on ST_Contains(s.shape, t.healthsite)),
+camp_geo as (select ssid, shape, area_sqm, count(*) as tubewells from camp_tube group by ssid, shape, area_sqm) ,
+block_geo as (select ssid, shape, area_sqm, count(*) as tubewells from block_tube group by ssid, shape, area_sqm) ,
+subblock_geo as (select ssid, shape, area_sqm, count(*) as tubewells from subblock_tube group by ssid, shape, area_sqm),
+camp as (select id, individuals, families, tubewells, individuals::float/tubewells::float as persons_per_tube, ST_AsGeoJSON(shape) as geometry from campdat bd join camp_geo bl on bd.id=bl.ssid),
+block as (select id, individuals, families, tubewells, individuals::float/tubewells::float as persons_per_tube, ST_AsGeoJSON(shape) as geometry from blockdat bd join block_geo bl on bd.id=bl.ssid),
+subblock as (select id, individuals, families, tubewells, individuals::float/tubewells::float as persons_per_tube, ST_AsGeoJSON(shape) as geometry from subblockdat bd join subblock_geo bl on bd.id=bl.ssid)
+select id, {1} as count, geometry from {0} """.format(adminLevel, unitInterest)
 
 
     # get results

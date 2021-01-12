@@ -31,13 +31,15 @@ export class AppComponent {
 
   // set initial admin level and unit of interest to be loaded
   ngAfterViewInit(): void {
-    this.dataservice.getAdminLevel('camp', 'individuals').subscribe((geojson: FeatureCollection, adminLevel: string, unitInterest: string) => {
+    this.dataservice.getAdminLevel('camp', 'individuals').subscribe((geojson: FeatureCollection)=>{
       this.map.addGeoJSON(geojson, 'camp', 'individuals');
+      //console.log(this.adminLevel);
+
     });
   }
 
   /*
-   * Retrieve pubs from backend and override the member variable.
+   * Retrieve amenities from backend and override the member variable.
    */
   onPubsAdded() {
     this.dataservice.getPubs().subscribe((pubs) => {
@@ -49,7 +51,7 @@ export class AppComponent {
   onAdminLevelAdded($event: { adminLevel: string; unitInterest: string}){
     //console.log(unitInterest);
 
-    this.dataservice.getAdminLevel($event.adminLevel, $event.unitInterest).subscribe((geojson: FeatureCollection, adminLevel: string, unitInterest: string)=>{
+    this.dataservice.getAdminLevel($event.adminLevel, $event.unitInterest).subscribe((geojson: FeatureCollection)=>{
       this.map.addGeoJSON(geojson, $event.adminLevel, $event.unitInterest);
       //console.log(this.adminLevel);
 
