@@ -1,37 +1,21 @@
 #!/bin/bash
 
-# A script for importing Data into the DB
-# takes the following flags:
-# -p port
-# -h localhost
-# -d database name
-# -u username
-
 
 # Defne local directory paths etc:
 DATA_DIR="data-research/data_export"
 PKG_LAYERS=( geo_admin geo_floods geo_reach_infra )
 
-# Import
-
 # Create hstore if not exists yet.
 echo "Create hstore extension in DB."
 
-psql \
-  ${PG_URI} \
-  -c "CREATE EXTENSION IF NOT EXISTS hstore;"
+psql ${PG_URI} -c "CREATE EXTENSION IF NOT EXISTS hstore;"
 
-# Import OSM Layer Bangladesh
 echo "Importing OSM data..."
 
-osm2pgsql -d ${PG_URI} \
-  --create --prefix=osm \
-  --hstore --proj=3160 \
+osm2pgsql -d ${PG_URI} --create --prefix=osm --hstore --proj=3160 \
   ${DATA_DIR}/bgd_camps.osm.pbf
 
 echo "Imported: OSM data."
-# Import
-
 echo "Import data-collection layers..."
 
 for layer in "${PKG_LAYERS[@]}";
@@ -47,18 +31,14 @@ done
 
 
 echo "Import rectangular data"
-
 Rscript data-research/import_csv.R
 
-
 echo "Run cleaning SQL script"
-psql \
-  ${PG_URI} \
-  -f data-research/import_clean.sql
+psql ${PG_URI} -f data-research/import_clean.sql
 
 
-# Create Functions:
-
+echo "Import Functions and triggers"
+psql ${PG_URI} -f db-calculation-src/functions.sql 
 
 
 echo "Done."
