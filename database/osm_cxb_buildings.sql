@@ -11,12 +11,36 @@ CREATE TABLE osm_cxb_buildings AS (
   FROM osm_polygon AS o
   JOIN geo_admin AS g ON ST_Intersects(o.way, g.geom)
   WHERE building IS NOT NULL
-); 
+);
 
 CREATE INDEX osm_cxb_buildings_idx
 ON osm_cxb_buildings USING GIST(geom);
 
 
+
+-- Add information whether centroids of a building are covered by flood
+-- polygons.
+
+-- Create additional column, set to 0 by default.
+ALTER TABLE osm_cxb_buildings
+ADD COLUMN count_flooded int DEFAULT 0;
+
+-- Calculate overlaps with building centroids and update the osm_cxb_buildings
+-- table accordingly.
+WITH
+  building_flooded AS (
+    SELECT id AS building_id, sblock_id, flood AS flood_id
+    FROM osm_cxb_buildings AS b
+    INNER JOIN geo_floods AS f ON ST_CoveredBy(b.geom, f.geom)),
+  building_count AS (
+    SELECT building_id, Count(*) AS count 
+    FROM building_flooded
+    GROUP BY 1
+  )
+UPDATE osm_cxb_buildings
+SET count_flooded = COALESCE(b.count, 0)
+FROM building_count AS b
+WHERE osm_cxb_buildings.id = b.building_id;
 
 
 
@@ -199,46 +223,3 @@ set dist_nutri = nutri.dist_nutri
 from nutri
 where osm_cxb_buildings.osm_id = nutri.osm_id;
 
---5. flood affectedness
-alter table osm_cxb_buildings 
-add flood_1 int, 
-add flood_2 int, 
-add flood_3 int,
-add flood_4 int, 
-add flood_count int;
-
---5.1 intersection von building layer und flood layer:
-with flood_1 as (
-    select ocb.osm_id, 1 as flood_1 
-    from osm_cxb_buildings ocb inner join geo_floods gf on st_intersects(ocb.area, gf.geom)
-    where ogc_fid = 1
-),
-flood_2 as (
-    select ocb.osm_id, 1 as flood_2
-    from osm_cxb_buildings ocb inner join geo_floods gf on st_intersects(ocb.area, gf.geom)
-    where ogc_fid = 2
-),
-flood_3 as (
-    select ocb.osm_id, 1 as flood_3
-    from osm_cxb_buildings ocb inner join geo_floods gf on st_intersects(ocb.area, gf.geom)
-    where ogc_fid = 3
-),
-flood_4 as (
-    select ocb.osm_id, 1 as flood_4
-    from osm_cxb_buildings ocb inner join geo_floods gf on st_intersects(ocb.area, gf.geom)
-    where ogc_fid = 4
-)
-update osm_cxb_buildings 
-set flood_1 = f1.flood_1,
-    flood_2 = f2.flood_2,
-    flood_3 = f3.flood_3,
-    flood_4 = f4.flood_4
-from flood_1 f1, flood_2 f2, flood_3 f3, flood_4 f4
-where osm_cxb_buildings.osm_id = f1.osm_id
-  and osm_cxb_buildings.osm_id = f2.osm_id
-  and osm_cxb_buildings.osm_id = f3.osm_id
-  and osm_cxb_buildings.osm_id = f4.osm_id;
-
---5.2 count number of times a building got affected by a flood:
-update osm_cxb_buildings 
-set flood_count = flood_1 + flood_2 + flood_3 + flood_4;
