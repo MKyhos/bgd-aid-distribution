@@ -45,6 +45,17 @@ ogr2ogr -f PostgreSQL PG:"host=localhost port=25432 user=gis_user dbname=gis_db 
 
 ogr2ogr -f PostgreSQL PG:"host=localhost port=25432 user=gis_user dbname=gis_db password=gis_pass" ../dta_camp.csv -oo AUTODETECT_TYPE=YES
 
+ogr2ogr -f "PostgreSQL" PG:"host=localhost port=25432 dbname=gis_db user=gis_user password=gis_pass" ../latrines.csv
+
+
+#### Upload created datasets
+
+ogr2ogr -f "PostgreSQL" PG:"host=localhost port=25432 dbname=gis_db user=gis_user password=gis_pass" ../camp_info.csv
+
+ogr2ogr -f "PostgreSQL" PG:"host=localhost port=25432 dbname=gis_db user=gis_user password=gis_pass" ../block_info.csv
+
+ogr2ogr -f "PostgreSQL" PG:"host=localhost port=25432 dbname=gis_db user=gis_user password=gis_pass" ../subblock_info.csv
+
 ### Renaming datasets, columns and some preprocessing
 
 ALTER TABLE public.t200908_rrc_outline_block_al2 RENAME TO block;
