@@ -1,31 +1,32 @@
 -----script to make a buildings table for Cox's Bazar
 
---1.1 osm layer zuschneiden -> Gebäude extrahieren
-create table osm_cxb_buildings as (
-    select osm_id, sblock_id, block_id, camp_id, building, area
-    from (
-            select op.osm_id, geo_admin.sblock_id, geo_admin.block_id, geo_admin.camp_id, op.building, (ST_Dump(ST_Intersection(geo_admin.geom, op.way))).geom as area
-            from geo_admin inner join osm_polygon op on ST_Intersects(geo_admin.geom, op.way)
-         ) as clipped
-    where clipped.building notnull and st_dimension(clipped.area) = 2
+-- 1. OSM Buildings:
+
+CREATE TABLE osm_cxb_buildings AS (
+  SELECT osm_id AS id,
+    building AS building_type,
+    g.sblock_id AS sblock_id,
+    ST_Area(way) AS area_sqm,
+    ST_Centroid(way) AS geom
+  FROM osm_polygon AS o
+  JOIN geo_admin AS g ON ST_Intersects(o.way, g.geom)
+  WHERE building IS NOT NULL
 ); 
 
---1.2 centroid zur Tabelle hinzufügen
-alter table osm_cxb_buildings add centroid geometry; 
-update osm_cxb_buildings 
-    set centroid = ST_centroid(area);
+CREATE INDEX osm_cxb_buildings_idx
+ON osm_cxb_buildings USING GIST(geom);
 
---1.3 add index to buildings table:
-CREATE INDEX osm_building_centroid_idx 
-ON osm_cxb_buildings 
-USING GIST(centroid);
 
---1.4 Bevölkerung auf Gebäude verteilen (von pop info, die wir auf admin level haben)
+
+
+
+
+--1.4 Bevï¿½lkerung auf Gebï¿½ude verteilen (von pop info, die wir auf admin level haben)
 select building --check what kinds of buildings there are
 from osm_cxb_buildings 
 group by building;
 
-  --entsprechende pop columns zur Tabelle hinzufügen:
+  --entsprechende pop columns zur Tabelle hinzufï¿½gen:
 alter table osm_cxb_buildings 
 add pop_indiv_per_build float8, 
 add pop_fam_per_build  float8, 
@@ -43,7 +44,7 @@ add pop_m_18_59_per_build float8,
 add pop_m_60_pl_per_build float8
 ;
 
-  --residential buildings pro sblock zählen:
+  --residential buildings pro sblock zï¿½hlen:
 with residential_buildings_per_sblock as 
 (
     select sblock_id, count(osm_id) as build_count
@@ -88,11 +89,11 @@ set pop_indiv_per_build   = pop.pop_indiv_per_build,
     pop_m_60_pl_per_build = pop.pop_m_60_pl_per_build
 from pop_per_building_per_sblock as pop
 where osm_cxb_buildings.sblock_id = pop.sblock_id
-; --funktioniert noch nicht für alle: für sblock_ids mit _XX am Ende gibt es keine passenden population Daten
+; --funktioniert noch nicht fï¿½r alle: fï¿½r sblock_ids mit _XX am Ende gibt es keine passenden population Daten
 
 
 --4. distance calculations
---nearest neighbor von jedem Haus (centroid) zum nächsten Brunnen (z.B.)
+--nearest neighbor von jedem Haus (centroid) zum nï¿½chsten Brunnen (z.B.)
 alter table osm_cxb_buildings 
 add dist_wprot float8, 
 add dist_tubew float8,
