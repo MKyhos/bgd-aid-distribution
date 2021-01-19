@@ -79,3 +79,19 @@ def adminLevel():
         # return all results as a feature collection
     return jsonify({"type": "FeatureCollection", "features": geojsons
         }), 200
+
+
+
+@app.route('/health', methods=["GET", "POST"])
+def health():
+    healthsite = request.get_json()["healthLocation"]
+    query = """ with healthsites as (select st_makepoint(longitude, latitude) as loc, "facility type" , "operational status" from health h2)
+select "facility type" as name, st_y(loc) as latitude, st_x(loc) as longitude from healthsites where "facility type" = '{0}'
+    """.format(healthsite)
+    with psycopg2.connect(host="database", port=5432, dbname="gis_db", user="gis_user", password="gis_pass") as conn:
+        with conn.cursor() as cursor:
+            cursor.execute(query)
+            results = cursor.fetchall()
+
+    return jsonify([{'name': r[0], 'latitude': r[1], 'longitude': r[2]} for r in results]), 200
+

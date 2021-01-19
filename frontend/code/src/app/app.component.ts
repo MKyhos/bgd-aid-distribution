@@ -15,6 +15,7 @@ export class AppComponent {
 
   // option 2: use @Input() in the child component
   amenities: { name: string; latitude: number; longitude: number }[] = [];
+  healthLocation: { name: string; latitude: number; longitude: number }[] = [];
 
   /*
    * Services or other dependencies are often imported via dependency injection.
@@ -61,6 +62,13 @@ export class AppComponent {
   onAmenitiesAdded($event: { amenity: string }) {
     this.dataservice.getAmenities($event.amenity).subscribe((amenities) => {
     this.amenities = amenities;
+
+  }
+  )};
+
+  onHealthLocationAdded($event: { healthLocation: string }) {
+    this.dataservice.getHealthLocation($event.healthLocation).subscribe((healthLocation) => {
+    this.healthLocation = healthLocation;
 
   }
   )};

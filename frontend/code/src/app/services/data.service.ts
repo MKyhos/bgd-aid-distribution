@@ -28,18 +28,31 @@ export class DataService {
     >(url, {}, httpOptions);
   }
 
-  public getAmenities(amenity: string): Observable<
+  public getHealthLocation(healthLocation: string): Observable<
     { name: string; latitude: number; longitude: number }[]
   > {
-    const url = 'http://localhost:5000/amenity';
+    const url = 'http://localhost:5000/health';
 
 
 
     return this.http.post<
       { name: string; latitude: number; longitude: number }[]
-    >(url, {amenity}, httpOptions);
+    >(url, {healthLocation}, httpOptions);
 
   }
+
+  public getAmenities(amenity: string): Observable<
+  { name: string; latitude: number; longitude: number }[]
+> {
+  const url = 'http://localhost:5000/amenity';
+
+
+
+  return this.http.post<
+    { name: string; latitude: number; longitude: number }[]
+  >(url, {amenity}, httpOptions);
+
+}
 
   public getAdminLevel(adminLevel: string, unitInterest: string): Observable<FeatureCollection> {
     const url = 'http://localhost:5000/adminLevel';

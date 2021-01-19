@@ -1,4 +1,6 @@
 <div id="settings-panel">
+  
+  <!--
   <form
     id="location-form"
     [formGroup]="this.locationForm"
@@ -29,7 +31,7 @@
       />
     </mat-form-field>
     <button class="button" type="submit" mat-stroked-button>Add Marker</button>
-  </form>
+  </form> -->
 
 <!--  <form
     id="location-form"
@@ -74,7 +76,24 @@
     </mat-form-field>
   </form>
 
-<!--  <div class="pubs">
-    <button class="button" (click)="addPubs()" mat-stroked-button>Add Health Facilities</button>
-  </div>
-</div> -->
+  <form
+    id="healthsite-form"
+    [formGroup]="this.healthsiteForm"
+    (change)="onHtSubmit(this.healthsiteForm.value)"
+  >
+    <mat-form-field appearance="fill">
+      <mat-label>Health Locations</mat-label>
+      <select matNativeControl required formControlName=healthLocation>
+        <option value="DTC">DTC</option>
+        <option value="Health Post Fixed">Health Post Fixed</option>
+        <option value="Health Post Mobile">Health Post Mobile</option>
+        <option value="Hospital">Hospital</option>
+        <option value="PHC">PHC</option>
+        <option value="Community Clinic">Community Clinic</option>
+        <option value="SRH clinic">SRH Clinic</option>
+        <option value="Other specialised services">Other specialised services</option>
+        <option value="none">None</option>
+      </select>
+    </mat-form-field>
+
+  </form>

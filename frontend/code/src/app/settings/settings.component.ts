@@ -32,6 +32,11 @@ export class SettingsComponent {
     amenity: string;
   }> = new EventEmitter<{ amenity: string }>();
 
+  @Output()
+  healthLocationAdded: EventEmitter<{
+    healthLocation: string;
+  }> = new EventEmitter<{ healthLocation: string }>();
+
 
   // location form stores and validates the inputs from our forms defined in the html document
   locationForm: FormGroup;
@@ -40,6 +45,8 @@ export class SettingsComponent {
 
   // admin form
   adminForm: FormGroup;
+
+  healthsiteForm: FormGroup;
 
   constructor(private fb: FormBuilder) {
     this.locationForm = fb.group({
@@ -67,6 +74,13 @@ export class SettingsComponent {
       ])
 
     });
+
+    this.healthsiteForm = fb.group({
+      healthLocation: fb.control('none', [
+        Validators.required      
+      ]),
+
+    });
   }
 
   /**
@@ -88,6 +102,11 @@ export class SettingsComponent {
   onAdSubmit(adminLevel: { adminLevel: string; unitInterest: string}): void {
     this.adminLevelAdded.emit(adminLevel);
     //console.log(adminLevel);
+  }
+
+  onHtSubmit(healthLocation: { healthLocation: string}): void {
+    this.healthLocationAdded.emit(healthLocation);
+    console.log(healthLocation);
   }
 
 

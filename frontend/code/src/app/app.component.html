@@ -1,4 +1,4 @@
 <div id="app">
-  <app-settings (markerAdded)="onAddMarker($event)" (amenityAdded)="onAmenitiesAdded($event)" (pubsAdded)="onPubsAdded()" (adminLevelAdded)="onAdminLevelAdded($event)"> </app-settings>
-  <app-map [amenities]="this.amenities"> </app-map>
+  <app-settings (markerAdded)="onAddMarker($event)" (amenityAdded)="onAmenitiesAdded($event)" (healthLocationAdded)="onHealthLocationAdded($event)" (pubsAdded)="onPubsAdded()" (adminLevelAdded)="onAdminLevelAdded($event)"> </app-settings>
+  <app-map [healthLocations]="this.healthLocation"> </app-map>
 </div>

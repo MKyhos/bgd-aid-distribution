@@ -11,8 +11,15 @@ import * as d3 from 'd3';
 export class MapComponent implements OnInit {
   private map!: L.Map;
   private amenitiesLayer: L.LayerGroup<any> = L.layerGroup();
+  private healthLocationsLayer: L.LayerGroup<any> = L.layerGroup();
 
   private _amenities: {
+    name: string;
+    latitude: number;
+    longitude: number;
+  }[] = [];
+
+  private _healthLocations: {
     name: string;
     latitude: number;
     longitude: number;
@@ -22,31 +29,35 @@ export class MapComponent implements OnInit {
     return this._amenities;
   }
 
-  @Input()
-  set amenities(
-    value: { name: string; latitude: number; longitude: number }[]
-  ) {
-    this._amenities = value;
-    this.updateAmenitiesLayer();
+  get healthLocations(): { name: string; latitude: number; longitude: number }[] {
+    return this._healthLocations;
   }
 
-  private updateAmenitiesLayer() {
+  @Input()
+  set healthLocations(
+    value: { name: string; latitude: number; longitude: number }[]
+  ) {
+    this._healthLocations = value;
+    this.updateHealthLocationsLayer();
+  }
+
+  private updateHealthLocationsLayer() {
     if (!this.map) {
       return;
     }
 
     // remove old amenities
-    this.map.removeLayer(this.amenitiesLayer);
+    this.map.removeLayer(this.healthLocationsLayer);
 
     // create a marker for each supplied amenity
-    const markers = this.amenities.map((a) =>
+    const markers = this.healthLocations.map((a) =>
       L.marker([a.latitude, a.longitude]).bindPopup(a.name)
     );
 
     // create a new layer group and add it to the map
-    this.amenitiesLayer = L.layerGroup(markers);
-    markers.forEach((m) => m.addTo(this.amenitiesLayer));
-    this.map.addLayer(this.amenitiesLayer);
+    this.healthLocationsLayer = L.layerGroup(markers);
+    markers.forEach((m) => m.addTo(this.healthLocationsLayer));
+    this.map.addLayer(this.healthLocationsLayer);
   }
 
   /**
