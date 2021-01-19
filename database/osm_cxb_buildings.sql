@@ -3,13 +3,16 @@
 -- 1. OSM Buildings:
 
 CREATE TABLE osm_cxb_buildings AS (
-  SELECT osm_id AS id,
+  SELECT distinct osm_id AS id,
     building AS building_type,
     g.sblock_id AS sblock_id,
+    g.block_id as block_id,
+    g.camp_id as camp_id,
     ST_Area(way) AS area_sqm,
-    ST_Centroid(way) AS geom
+    ST_Centroid(way) AS geom,
+    way as area
   FROM osm_polygon AS o
-  JOIN geo_admin AS g ON ST_Intersects(o.way, g.geom)
+  JOIN geo_admin AS g ON st_within(o.way, g.geom) --birke: changed st_coveredBy to st_within -> seems to avoid the problem of houses being assigned to several sblock_ids
   WHERE building IS NOT NULL
 );
 
@@ -17,38 +20,10 @@ CREATE INDEX osm_cxb_buildings_idx
 ON osm_cxb_buildings USING GIST(geom);
 
 
-
--- Add information whether centroids of a building are covered by flood
--- polygons.
-
--- Create additional column, set to 0 by default.
-ALTER TABLE osm_cxb_buildings
-ADD COLUMN count_flooded int DEFAULT 0;
-
--- Calculate overlaps with building centroids and update the osm_cxb_buildings
--- table accordingly.
-WITH
-  building_flooded AS (
-    SELECT id AS building_id, sblock_id, flood AS flood_id
-    FROM osm_cxb_buildings AS b
-    INNER JOIN geo_floods AS f ON ST_CoveredBy(b.geom, f.geom)),
-  building_count AS (
-    SELECT building_id, Count(*) AS count 
-    FROM building_flooded
-    GROUP BY 1
-  )
-UPDATE osm_cxb_buildings
-SET count_flooded = COALESCE(b.count, 0)
-FROM building_count AS b
-WHERE osm_cxb_buildings.id = b.building_id;
-
-
-
-
---1.4 Bev�lkerung auf Geb�ude verteilen (von pop info, die wir auf admin level haben)
-select building --check what kinds of buildings there are
+--1.2 Bev�lkerung auf Geb�ude verteilen (von pop info, die wir auf admin level haben)
+select building_type --check what kinds of buildings there are
 from osm_cxb_buildings 
-group by building;
+group by building_type;
 
   --entsprechende pop columns zur Tabelle hinzuf�gen:
 alter table osm_cxb_buildings 
@@ -71,10 +46,10 @@ add pop_m_60_pl_per_build float8
   --residential buildings pro sblock z�hlen:
 with residential_buildings_per_sblock as 
 (
-    select sblock_id, count(osm_id) as build_count
+    select sblock_id, count(id) as build_count
     from osm_cxb_buildings ob
-    where ob.building = 'apartments' or ob.building = 'hamlet' or ob.building = 'residential' 
-       or ob.building = 'house' or ob.building = 'roof' or ob.building = 'yes' --only select buildings that are possibly residential
+    where ob.building_type = 'apartments' or ob.building_type = 'hamlet' or ob.building_type = 'residential' 
+       or ob.building_type = 'house' or ob.building_type = 'roof' or ob.building_type = 'yes' --only select buildings that are possibly residential
     group by sblock_id
 ), --population/sblock teilen durch building-count/sblock:
 pop_per_building_per_sblock as 
@@ -114,9 +89,37 @@ set pop_indiv_per_build   = pop.pop_indiv_per_build,
 from pop_per_building_per_sblock as pop
 where osm_cxb_buildings.sblock_id = pop.sblock_id
 ; --funktioniert noch nicht f�r alle: f�r sblock_ids mit _XX am Ende gibt es keine passenden population Daten
+  --Frage: wie bringt man die am Besten dazu? 
 
+--2. Add information whether centroids of a building are covered by flood polygons.
 
---4. distance calculations
+-- Create additional column, set to 0 by default.
+ALTER TABLE osm_cxb_buildings
+ADD COLUMN count_flooded int DEFAULT 0;
+
+-- Calculate overlaps with building centroids and update the osm_cxb_buildings
+-- table accordingly.
+WITH
+  building_flooded AS (
+    SELECT id AS building_id, sblock_id, flood AS flood_id
+    FROM osm_cxb_buildings AS b
+    INNER JOIN geo_floods AS f ON st_coveredby(b.geom, f.geom)),
+  building_count AS (
+    SELECT building_id, Count(*) AS count 
+    FROM building_flooded
+    GROUP BY 1
+  )
+UPDATE osm_cxb_buildings
+SET count_flooded = b.count
+FROM building_count AS b
+WHERE osm_cxb_buildings.id = b.building_id;
+
+select count_flooded, count(id)
+from osm_cxb_buildings ocb 
+group by count_flooded ;
+
+/*--4. distance calculations (funktionieren noch nicht bzw. brauchen sehr lange - bisher noch nicht durchgelaufen)
+-- mal schauen was er in der VL heute dazu sagt :D
 --nearest neighbor von jedem Haus (centroid) zum n�chsten Brunnen (z.B.)
 alter table osm_cxb_buildings 
 add dist_wprot float8, 
@@ -128,19 +131,19 @@ add dist_nutri float8;
 
 --distance to women protection areas: 
 with wprot as (
-    select ocb.osm_id, 
-    st_distance(ocb.centroid, nearest.geom) as dist_wprot
+    select ocb.id, 
+    st_distance(ocb.geom, nearest.geom) as dist_wprot
     from osm_cxb_buildings ocb
     cross join lateral (select ogc_fid, geom
                         from geo_reach_infra infra
                         where infra."class" = 'women_protection'
-                        order by ocb.centroid <-> geom
+                        order by ocb.geom <-> geom
                         limit 1) as nearest
 )
 update osm_cxb_buildings 
 set dist_wprot = wprot.dist_wprot
 from wprot
-where osm_cxb_buildings.osm_id = wprot.osm_id;
+where osm_cxb_buildings.id = wprot.id;
 
 --distance to tubewells:
 with tubew as (
@@ -191,7 +194,7 @@ from sanit
 where osm_cxb_buildings.osm_id = sanit.osm_id;
 
 --distance to some form of health centre (funktioniert noch nicht)
-/*with healt as (
+with healt as (
     select ocb.osm_id, 
     st_distance(ocb.centroid, nearest.geom) as dist_healt
     from osm_cxb_buildings ocb
@@ -205,7 +208,7 @@ where osm_cxb_buildings.osm_id = sanit.osm_id;
 update osm_cxb_buildings 
 set dist_healt = healt.dist_healt
 from healt
-where osm_cxb_buildings.osm_id = healt.osm_id;*/
+where osm_cxb_buildings.osm_id = healt.osm_id;
 
 --distance to nutrition service
 with nutri as (
@@ -223,3 +226,6 @@ set dist_nutri = nutri.dist_nutri
 from nutri
 where osm_cxb_buildings.osm_id = nutri.osm_id;
 
+select sblock_id, pop_n_individuals 
+from dta_sblock ds 
+where pop_n_individuals is null*/

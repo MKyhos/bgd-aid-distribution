@@ -209,7 +209,7 @@ set wmn_per_wprot = (pop_f_below_1 + pop_f_1_to_4 + pop_f_5_to_11 + pop_f_12_to_
     pop_per_healt = pop_n_individuals / count_healt,
     pop_per_nutri = pop_n_individuals / count_nutri;
    
----4. distance calculations
+/*---4. distance calculations
 alter table dta_sblock 
 add dist_wprot float8, 
 add dist_tubew float8,
@@ -234,29 +234,33 @@ set dist_wprot = d.dist_wprot,
     dist_healt = d.dist_healt,
     dist_nutri = d.dist_nutri
 from sblock_measurements d
-where dta_sblock.sblock_id = sblock_measurements;
+where dta_sblock.sblock_id = sblock_measurements;*/
 
 ---5. flood affectedness
 alter table dta_sblock 
-add flooded_perc float8;
+add flooded_perc float8 default 0;
 
 --aggregate per sblock level:
 with buildings_per_sblock as (
-    select sblock_id, count(osm_id) as build_count
+    select sblock_id, count(id) as build_count
     from osm_cxb_buildings ob
     group by sblock_id
 ), 
 buildings_affected as (
-    select sblock_id, count(osm_id) as flooded
+    select sblock_id, count(id) as flooded
     from osm_cxb_buildings ob
-    where flood_count >= 1
+    where count_flooded >= 1
     group by sblock_id
 ),
 percent_flooded as (
-    select (100 / bpsb.build_count * ba.flooded) as flooded_perc 
+    select bpsb.sblock_id, (100 / bpsb.build_count * ba.flooded) as flooded_perc 
     from buildings_per_sblock bpsb natural join buildings_affected ba
 )
 update dta_sblock 
 set flooded_perc = percent_flooded.flooded_perc
 from percent_flooded
 where dta_sblock.sblock_id = percent_flooded.sblock_id;
+
+select *
+from dta_sblock ds 
+where flooded_perc > 0
