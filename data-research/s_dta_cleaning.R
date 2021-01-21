@@ -115,8 +115,31 @@ dta_population <- readxl::read_xlsx(
     cols = - c(camp_name, block),
     names_to = "variable",
     values_to = "count") %>% 
-  inner_join(camp_information, by = c("camp_name" = "camp_name", "block" = "block_name")) %>%
+  full_join(camp_information, by = c("camp_name" = "camp_name", "block" = "block_name")) %>%
   select(camp_id, block_id, variable, count)
+
+
+# Check consistency: 
+
+dta_population %>%
+  filter(variable == "n_individuals") %>%
+  select(block_id, n_individuals = count) %>%
+  inner_join(
+    dta_population %>%
+      filter(variable != "n_individuals" & variable != "n_family") %>%
+      group_by(block_id) %>%
+      summarise(n_sum = sum(count)),
+    by = "block_id") %>%
+  filter(n_individuals != n_sum)
+
+# Create Wide table on block level:
+
+dta_block <- dta_population %>%
+  filter(variable != "n_family") %>%
+  mutate(variable = ifelse(variable == "n_individuals", "pop_total", variable)) %>%
+  select(block_id, variable, count) %>%
+  tidyr::pivot_wider(names_from = variable, values_from = count, values_fill = 0)
+
 
 
 # Compile potential camp level data:
@@ -230,3 +253,4 @@ write_sf(
 readr::write_csv(dta_sblock, "data-research/data_export/dta_sblock.csv")
 readr::write_csv(dta_population, "data-research/data_export/dta_population_block.csv")
 readr::write_csv(dta_camp, "data-research/data_export/dta_camp.csv")
+readr::write_csv(dta_block, "data-research/data_export/dta_block.csv")
