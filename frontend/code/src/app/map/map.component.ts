@@ -25,6 +25,8 @@ export class MapComponent implements OnInit {
     longitude: number;
   }[] = [];
 
+
+
   get amenities(): { name: string; latitude: number; longitude: number }[] {
     return this._amenities;
   }
@@ -72,17 +74,17 @@ export class MapComponent implements OnInit {
       iconRetinaUrl,
       iconUrl,
       shadowUrl,
-      iconSize: [25, 41],
-      iconAnchor: [12, 41],
-      popupAnchor: [1, -34],
-      tooltipAnchor: [16, -28],
-      shadowSize: [41, 41],
+      iconSize: [20, 40],
+      iconAnchor: [20, 40],
+      popupAnchor: [1, -40],
+      tooltipAnchor: [16, -40],
+      shadowSize: [40, 40],
     });
 
     L.Marker.prototype.options.icon = iconDefault;
 
     // basic setup, create a map in the div with the id "map"
-    this.map = L.map('map').setView([21.0, 92.29], 10);
+    this.map = L.map('map').setView([21.05, 92.29], 11);
 
     // set a tilelayer, e.g. a world map in the background
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -143,7 +145,7 @@ public addGeoJSON(geojson: FeatureCollection, adminLevel: string, unitInterest: 
       opacity: 1,
       color: 'white',
       dashArray: '3',
-      fillOpacity: 0.7,
+      fillOpacity: 0.9,
     };
   };
 
