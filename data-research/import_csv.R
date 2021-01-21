@@ -13,15 +13,16 @@ db <- DBI::dbConnect(
   port = Sys.getenv("PG_PORT")
 )
 
-
 # Import
-
-dta_sblock <- read.csv(here::here("data-research/data_export/dta_sblock.csv"))
+dta_block <- readr::read_csv(
+  here::here("data-research/data_export/dta_block.csv"),
+  col_types = readr::cols()
+)
 
 DBI::dbWriteTable(
   conn = db,
-  name = "dta_sblock",
-  value = dta_sblock,
+  name = "dta_block",
+  value = dta_block,
   overwrite = TRUE
 )
 
