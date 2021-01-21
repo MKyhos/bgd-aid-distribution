@@ -19,6 +19,9 @@ CREATE TABLE osm_cxb_buildings AS (
 CREATE INDEX osm_cxb_buildings_idx
 ON osm_cxb_buildings USING GIST(geom);
 
+alter table osm_cxb_buildings 
+add primary key (id);
+
 
 --1.2 Bevï¿½lkerung auf Gebï¿½ude verteilen (von pop info, die wir auf admin level haben)
 select building_type --check what kinds of buildings there are
@@ -27,8 +30,7 @@ group by building_type;
 
   --entsprechende pop columns zur Tabelle hinzufï¿½gen:
 alter table osm_cxb_buildings 
-add pop_indiv_per_build float8, 
-add pop_fam_per_build  float8, 
+add pop_total_per_build float8, 
 add pop_f_bel_1_per_build float8,
 add pop_f_01_04_per_build float8, 
 add pop_f_05_11_per_build float8,
@@ -43,37 +45,35 @@ add pop_m_18_59_per_build float8,
 add pop_m_60_pl_per_build float8
 ;
 
-  --residential buildings pro sblock zï¿½hlen:
-with residential_buildings_per_sblock as 
+  --residential buildings pro block zï¿½hlen:
+with residential_buildings_per_block as 
 (
-    select sblock_id, count(id) as build_count
+    select block_id, count(id) as build_count
     from osm_cxb_buildings ob
     where ob.building_type = 'apartments' or ob.building_type = 'hamlet' or ob.building_type = 'residential' 
        or ob.building_type = 'house' or ob.building_type = 'roof' or ob.building_type = 'yes' --only select buildings that are possibly residential
-    group by sblock_id
+    group by block_id
 ), --population/sblock teilen durch building-count/sblock:
-pop_per_building_per_sblock as 
+pop_per_building_per_block as 
 (
-    select ds.sblock_id,
-       (ds.pop_n_individuals/rb.build_count)as pop_indiv_per_build,
-       (ds.pop_n_family   / rb.build_count) as pop_fam_per_build , 
-       (ds.pop_f_below_1  / rb.build_count) as pop_f_bel_1_per_build,
-       (ds.pop_f_1_to_4   / rb.build_count) as pop_f_01_04_per_build, 
-       (ds.pop_f_5_to_11  / rb.build_count) as pop_f_05_11_per_build,
-       (ds.pop_f_12_to_17 / rb.build_count) as pop_f_12_17_per_build, 
-       (ds.pop_f_18_to_59 / rb.build_count) as pop_f_18_59_per_build,
-       (ds.pop_f_60_plus  / rb.build_count) as pop_f_60_pl_per_build,
-       (ds.pop_m_below_1  / rb.build_count) as pop_m_bel_1_per_build,
-       (ds.pop_m_1_to_5   / rb.build_count) as pop_m_01_04_per_build,
-       (ds.pop_m_5_to_11  / rb.build_count) as pop_m_05_11_per_build,
-       (ds.pop_m_12_to_17 / rb.build_count) as pop_m_12_17_per_build, 
-       (ds.pop_m_18_to_59 / rb.build_count) as pop_m_18_59_per_build,
-       (ds.pop_m_60_plus  / rb.build_count) as pop_m_60_pl_per_build
-    from dta_sblock ds natural join residential_buildings_per_sblock rb --joins on sblock_id
+    select ds.block_id,
+       (ds.pop_total  / rb.build_count) as pop_total_per_build,
+       (ds.f_below_1  / rb.build_count) as pop_f_bel_1_per_build,
+       (ds.f_1_to_4   / rb.build_count) as pop_f_01_04_per_build, 
+       (ds.f_5_to_11  / rb.build_count) as pop_f_05_11_per_build,
+       (ds.f_12_to_17 / rb.build_count) as pop_f_12_17_per_build, 
+       (ds.f_18_to_59 / rb.build_count) as pop_f_18_59_per_build,
+       (ds.f_60_plus  / rb.build_count) as pop_f_60_pl_per_build,
+       (ds.m_below_1  / rb.build_count) as pop_m_bel_1_per_build,
+       (ds.m_1_to_5   / rb.build_count) as pop_m_01_04_per_build,
+       (ds.m_5_to_11  / rb.build_count) as pop_m_05_11_per_build,
+       (ds.m_12_to_17 / rb.build_count) as pop_m_12_17_per_build, 
+       (ds.m_18_to_59 / rb.build_count) as pop_m_18_59_per_build,
+       (ds.m_60_plus  / rb.build_count) as pop_m_60_pl_per_build
+    from dta_block ds natural join residential_buildings_per_block rb --joins on block_id
 ) 
 update osm_cxb_buildings 
-set pop_indiv_per_build   = pop.pop_indiv_per_build,
-    pop_fam_per_build     = pop.pop_fam_per_build ,
+set pop_total_per_build   = pop.pop_total_per_build,
     pop_f_bel_1_per_build = pop.pop_f_bel_1_per_build,
     pop_f_01_04_per_build = pop.pop_f_01_04_per_build,
     pop_f_05_11_per_build = pop.pop_f_05_11_per_build,
@@ -86,16 +86,27 @@ set pop_indiv_per_build   = pop.pop_indiv_per_build,
     pop_m_12_17_per_build = pop.pop_m_12_17_per_build,
     pop_m_18_59_per_build = pop.pop_m_18_59_per_build,
     pop_m_60_pl_per_build = pop.pop_m_60_pl_per_build
-from pop_per_building_per_sblock as pop
-where osm_cxb_buildings.sblock_id = pop.sblock_id
-; --funktioniert noch nicht fï¿½r alle: fï¿½r sblock_ids mit _XX am Ende gibt es keine passenden population Daten
-  --Frage: wie bringt man die am Besten dazu? 
+from pop_per_building_per_block as pop
+where osm_cxb_buildings.block_id = pop.block_id
+;
+
+--checks: 
+select pop_total_per_build, count(id)
+from osm_cxb_buildings ocb 
+group by pop_total_per_build 
+order by pop_total_per_build desc
+
+select block_id, count(id)
+from osm_cxb_buildings ocb 
+where pop_total_per_build is null
+group by block_id 
+--für manche blocks gibt es keine population daten - erstmal einfach NULL lassen
 
 --2. Add information whether centroids of a building are covered by flood polygons.
 
 -- Create additional column, set to 0 by default.
 ALTER TABLE osm_cxb_buildings
-ADD COLUMN count_flooded int DEFAULT 0;
+ADD COLUMN count_flooded float8 DEFAULT 0;
 
 -- Calculate overlaps with building centroids and update the osm_cxb_buildings
 -- table accordingly.
@@ -103,7 +114,7 @@ WITH
   building_flooded AS (
     SELECT id AS building_id, sblock_id, flood AS flood_id
     FROM osm_cxb_buildings AS b
-    INNER JOIN geo_floods AS f ON st_coveredby(b.geom, f.geom)),
+    INNER JOIN geo_floods AS f ON st_coveredby(b.geom, f.geom)), --geom is the centroid of the buildings
   building_count AS (
     SELECT building_id, Count(*) AS count 
     FROM building_flooded
@@ -114,12 +125,12 @@ SET count_flooded = b.count
 FROM building_count AS b
 WHERE osm_cxb_buildings.id = b.building_id;
 
+--check:
 select count_flooded, count(id)
 from osm_cxb_buildings ocb 
 group by count_flooded ;
 
 /*--4. distance calculations (funktionieren noch nicht bzw. brauchen sehr lange - bisher noch nicht durchgelaufen)
--- mal schauen was er in der VL heute dazu sagt :D
 --nearest neighbor von jedem Haus (centroid) zum nï¿½chsten Brunnen (z.B.)
 alter table osm_cxb_buildings 
 add dist_wprot float8, 
