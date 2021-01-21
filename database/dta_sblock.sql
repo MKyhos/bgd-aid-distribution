@@ -17,8 +17,8 @@ create table dta_sblock as (
        cast(sum(pop_m_18_59_per_build) as decimal(18,0)) as m_18_to_59,
        cast(sum(pop_m_60_pl_per_build) as decimal(18,0)) as m_60_plus
     from osm_cxb_buildings ocb 
-    group by sblock_id 
-);
+    group by sblock_id
+); --muss nohcmal checken: ich glaub es fehlt ein sblock
 
 alter table dta_sblock
 add primary key (sblock_id);
