@@ -21,7 +21,9 @@ echo "Import data-collection layers..."
 for layer in "${PKG_LAYERS[@]}";
 do
   ogr2ogr \
-    -append \
+    -overwrite \
+    -s_srs EPSG:3160 \
+    -t_srs EPSG:3160 \
     -nln ${layer} \
     -f "PostgreSQL" PG:"host=$PG_HOST user=$PG_USER dbname=$PG_DB port=$PG_PORT password=$PG_PASSWORD" \
     "${DATA_DIR}/data-collection.gpkg" \
