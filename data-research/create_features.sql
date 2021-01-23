@@ -60,12 +60,20 @@ UPDATE buildings
 -- Status: :checkmark:
 
 WITH 
+  camp_info AS (
+    SELECT block_id,
+      Sum(area_sqm) AS camp_b_area,
+      Count(*) AS camp_b_number
     FROM buildings
     GROUP BY 1
   )
 UPDATE buildings AS b1
+  SET population = (
+      (0.5 * (d.pop_total / ci.camp_b_number)) +
+      ((d.pop_total / 2) * (b1.area_sqm / ci.camp_b_area))
+  )
   FROM dta_block AS d
-  JOIN block_building_areas AS bba ON d.block_id = bba.block_id
+  JOIN camp_info AS ci ON d.block_id = ci.block_id
   WHERE b1.block_id = d.block_id;
 
 -- Get Nearest Neighbor distance for each house to various Elements...
