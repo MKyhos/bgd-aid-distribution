@@ -17,7 +17,8 @@
 -- Create Table of OSM Buildings:
 
 CREATE TABLE buildings AS (
-  SELECT osm_id AS id,
+  SELECT DISTINCT ON (osm_id) 
+    osm_id AS id,
     building AS building_type,
     g.camp_id AS camp_id,
     g.block_id AS block_id,
