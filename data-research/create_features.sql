@@ -1,4 +1,18 @@
+/*
+  # CREATE / CALCULATE FEATURES
 
+  This SQL script collects the calculation of any in DB feature 
+  engineering step. In particular
+
+  - Creating the buildings table
+  - Calculate distances, floods, distribute population
+
+  #TODO To be added if desired:
+  - Materialized views suitable for joining / optimizig the frontend
+    queries.
+  - Voronoi partition for facilities, calculate per-facitility population
+    etc.
+*/
 
 -- Create Table of OSM Buildings:
 
@@ -38,7 +52,7 @@ ALTER TABLE buildings
 
 
 
--- Calculate overlaps with building centroids and update the osm_cxb_buildings
+-- Calculate overlaps with building centroids and update the buildings
 -- table accordingly.
 WITH
   building_flooded AS (
@@ -76,8 +90,17 @@ UPDATE buildings AS b1
   JOIN camp_info AS ci ON d.block_id = ci.block_id
   WHERE b1.block_id = d.block_id;
 
--- Get Nearest Neighbor distance for each house to various Elements...
+/*
+  For every building: calculate distance to nearest instance of
+  - bath
+  - tubewells
+  - nutrition services
+  - women protection areas
+  - latrines
+  - health facilities
 
+  For sparse features, the calculation might take 10 - 20 minutes.
+*/
 -- 1. Bathing stuff
 UPDATE buildings AS b1
   SET dist_bath = (
@@ -123,7 +146,7 @@ UPDATE buildings AS b1
   SET dist_latr = (
     SELECT ST_Distance(b1.geom, gri.geom)
     FROM geo_reach_infra AS gri
-    WHERE class = 'sanitation' AND TYPE != 'bathing'
+    WHERE class = 'sanitation' AND type != 'bathing'
     ORDER BY b1.geom <-> gri.geom
     LIMIT 1
   );
@@ -133,7 +156,8 @@ UPDATE buildings AS b1
   SET dist_heal = (
     SELECT ST_Distance(b1.geom, gri.geom)
     FROM geo_reach_infra AS gri
-    WHERE class IS NULL AND TYPE NOT IN ('DTC', 'Other specialised services')
+    WHERE class = 'health_service'
     ORDER BY b1.geom <-> gri.geom
     LIMIT 1
   );
+  
