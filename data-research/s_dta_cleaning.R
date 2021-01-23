@@ -9,7 +9,7 @@ library(here)
 library(mapview) # For exploration.
 library(DBI)
 
-
+# Database conenction
 db <- DBI::dbConnect(
   RPostgres::Postgres(),
   host = Sys.getenv("PG_HOST"),
@@ -17,6 +17,12 @@ db <- DBI::dbConnect(
   dbname = Sys.getenv("PG_DB"),
   port = Sys.getenv("PG_PORT")
 )
+
+
+# Functions: 
+
+`%nin%` <- Negate(`%in%`)
+
 
 
 #' Import
@@ -35,16 +41,15 @@ db <- DBI::dbConnect(
 #' _Note:_ some camps are not available on al3. Thus, al1 is used as drop in.
 #' 
 geo_outline_a2 <- read_sf(here("data-research/data_raw/outline/block_al2/200908_RRC_Outline_Block_AL2.shp")) %>%
-  st_transform(crs = 3160)
+  st_transform(crs = 3160) %>%
+  select(camp_id = Camp_SSID, camp_name = CampName, block_id = Block_SSID,
+    block_name = Block_Name, geometry)
 
 camp_information <- geo_outline_a2 %>%
-  st_drop_geometry() %>%
-  select(
-    camp_id = Camp_SSID, camp_name = CampName,
-    block_id = Block_SSID, block_name = Block_Name)
+  st_drop_geometry() 
 
 geo_outline_a2 <- geo_outline_a2 %>%
-  select(camp_id = Camp_SSID, block_id = Block_SSID, geometry)
+  select(camp_id, block_id, geometry)
 
 geo_outline_a3 <- read_sf(here("data-research/data_raw/outline/block_al3/200908_RRC_Outline_SubBlock_AL3.shp")) %>%
   st_transform(crs = 3160) %>%
@@ -106,8 +111,6 @@ geo_flood <- geo_fl_01 %>%
   select(flood, geometry)
 
 
-
-
 dta_population <- readxl::read_xlsx(
   here("data-research/data_raw/population_74678.xlsx"),
   sheet = 2) %>%
@@ -115,7 +118,10 @@ dta_population <- readxl::read_xlsx(
     cols = - c(camp_name, block),
     names_to = "variable",
     values_to = "count") %>% 
-  full_join(camp_information, by = c("camp_name" = "camp_name", "block" = "block_name")) %>%
+  filter(block != "No Block") %>%
+  inner_join(
+    y = camp_information,
+    by = c("camp_name" = "camp_name", "block" = "block_name")) %>%
   select(camp_id, block_id, variable, count)
 
 
@@ -136,13 +142,18 @@ dta_population %>%
 
 dta_block <- dta_population %>%
   filter(variable != "n_family") %>%
-  mutate(variable = ifelse(variable == "n_individuals", "pop_total", variable)) %>%
+  mutate(variable = ifelse(
+    test = variable == "n_individuals",
+    yes = "pop_total",
+    no = variable)) %>%
   select(block_id, variable, count) %>%
-  tidyr::pivot_wider(names_from = variable, values_from = count, values_fill = 0)
+  tidyr::pivot_wider(
+    names_from = variable,
+    values_from = count,
+    values_fill = 0)
 
 
-
-# Compile potential camp level data:
+# For some blocks, there is no pop data available...
 
 
 
@@ -190,6 +201,7 @@ dta_nutrition <- readxl::read_xlsx(
   st_as_sf(coords = c("lon", "lat"), crs = 4326) %>%
   st_transform(crs = 3160)
 
+
 geo_reach_infra <- bind_rows(
   dta_tubewells,
   dta_sanitation,
@@ -198,38 +210,6 @@ geo_reach_infra <- bind_rows(
   dta_nutrition) %>%
   st_as_sf() %>%
   select(class, type, geometry, type, sanitary_inspection_score, contamination_risk_score)
-
-
-#' Map Population to sblock level: 
-#' For this, we weight by number of buildings in a subblock. Based on that
-#' share, the block population is distributed.
-
-dta_buildings_sblock <- dbGetQuery(
-  conn = db,
-  statement = "
-    SELECT block_id, sblock_id, COALESCE(Count(*), 0) AS count
-    FROM geo_admin AS g
-    LEFT JOIN osm_polygon AS o ON ST_Covers(g.geom, o.way)
-    WHERE o.building = 'yes'
-    GROUP BY 1, 2
-    ORDER BY 1;") %>%
-  tibble::as_tibble()
-
-dta_population_sblock <- dta_buildings_sblock %>%
-  group_by(block_id) %>%
-  mutate(building_share = count / sum(count)) %>%
-  ungroup() %>%
-  select(-count) %>%
-  left_join(dta_population, by = "block_id") %>%
-  mutate(est_count = round(count * building_share)) %>%
-  select(block_id, sblock_id, variable, est_count)
-
-dta_sblock <- dta_population_sblock %>%
-  mutate(variable = paste0("pop_", variable)) %>%
-  filter(!is.na(variable) & variable != "NA") %>%
-  select(-block_id) %>%
-  tidyr::pivot_wider(names_from = variable, values_from = est_count) %>%
-  select(-pop_NA)
 
 
 # Export:
@@ -250,7 +230,6 @@ write_sf(
 )
 
 # Recangular data
-readr::write_csv(dta_sblock, "data-research/data_export/dta_sblock.csv")
 readr::write_csv(dta_population, "data-research/data_export/dta_population_block.csv")
 readr::write_csv(dta_camp, "data-research/data_export/dta_camp.csv")
 readr::write_csv(dta_block, "data-research/data_export/dta_block.csv")
