@@ -15,8 +15,8 @@ CREATE TABLE buildings AS (
   WHERE building IN ('yes', 'hut', 'residential', 'house', 'apartments')
 );
 
-CREATE INDEX osm_cxb_buildings_idx
-  ON osm_cxb_buildings USING GIST(geom);
+ALTER TABLE buildings
+  ALTER COLUMN geom TYPE geometry(POINT, 3160) USING ST_SetSRID(geom, 3160);
 
 
 CREATE INDEX buildings_idx
