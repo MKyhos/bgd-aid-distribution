@@ -8,23 +8,56 @@ CREATE SCHEMA IF NOT EXISTS internal;
 
 
 CREATE OR REPLACE FUNCTION postgisftw.get_dta(level int = 1)
-RETURNS TABLE (id VARCHAR, geom GEOMETRY) AS
+RETURNS TABLE (
+  camp_id varchar,
+  block_id varchar,
+  sblock_id varchar,
+  population numeric,
+  dist_heal numeric,
+  dist_bath numeric,
+  dist_latr numeric,
+  dist_nutr numeric,
+  dist_wpro numeric,
+  dist_tube numeric,
+  count_buildings bigint,
+  n_latr bigint,
+  n_heal bigint,
+  n_nutr bigint,
+  n_wpro bigint,
+  n_tube bigint,
+  n_bath bigint,
+  geom geometry
+) AS
 $$
   BEGIN
-    IF level = 1 THEN
+    IF level = 1 THEN -- Camp level
       RETURN QUERY
-        SELECT g.camp_id AS id, ST_Union(g.geom) AS geom
-        FROM public.geo_admin AS g
-        GROUP BY g.camp_id;
-    ELSIF level = 2 THEN
+        SELECT d.*, g.geom,
+          'none' AS block_id,
+          'none' AS sblock_id
+        FROM dta_camp_features AS d,
+          (
+            SELECT ga.camp_id, ST_Union(ga.geom) AS geom
+            FROM geo_admin AS ga
+            GROUP BY 1
+          ) AS g
+        WHERE d.camp_id = g.camp_id;
+    ELSIF level = 2 THEN -- Block level
       RETURN QUERY
-        SELECT g.block_id AS id, ST_Union(g.geom) AS geom
-        FROM public.geo_admin AS g
-        GROUP BY g.block_id;
-    ELSIF level = 3 THEN
+        SELECT d.*, g.geom,
+          'none' AS sblock_id
+        FROM dta_block_features AS d,
+          (
+            SELECT ga.block_id, ST_Union(ga.geom) AS geom
+            FROM geo_admin AS ga
+            GROUP BY 1
+          ) AS g
+        WHERE d.block_id = g.block_id;
+    ELSIF level = 3 THEN -- SBlock level
       RETURN QUERY
-        SELECT g.sblock_id as id, g.geom
-        FROM public.geo_admin AS g;
+        SELECT d.*, g.geom
+        FROM dta_sblock_features AS d
+        JOIN geo_admin AS g ON d.sblock_id = g.sblock_id; 
     ELSE
       RETURN QUERY
         SELECT 'NULL' AS id, 'NULL' AS geom;
@@ -35,4 +68,3 @@ LANGUAGE 'plpgsql' STABLE PARALLEL SAFE;
 
 COMMENT ON FUNCTION postgisftw.get_dta IS 'Function exposing the three admin 
 level polygons plus properties.';
-
