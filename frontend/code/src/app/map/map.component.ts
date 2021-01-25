@@ -1,7 +1,9 @@
 import { Component, Input, OnInit } from '@angular/core';
+
 import { Feature, FeatureCollection, Geometry, MultiPolygon } from 'geojson';
 import * as L from 'leaflet';
 import * as d3 from 'd3';
+
 
 @Component({
   selector: 'app-map',
@@ -133,6 +135,39 @@ public addGeoJSON(geojson: FeatureCollection, adminLevel: string, unitInterest: 
     .domain([0, max])
     .interpolator(d3.interpolateViridis);
 
+    function getColor(d: any) {
+      return d > 1000 ? '#800026' :
+             d > 500  ? '#BD0026' :
+             d > 200  ? '#E31A1C' :
+             d > 100  ? '#FC4E2A' :
+             d > 50   ? '#FD8D3C' :
+             d > 20   ? '#FEB24C' :
+             d > 10   ? '#FED976' :
+                        '#FFEDA0';
+  }
+  var legend = new L.Control({position: 'bottomright'});
+
+  legend.onAdd = function (map) {
+
+      var div = L.DomUtil.create('div', 'info legend'),
+          grades = [0, 10, 20, 50, 100, 200, 500, 1000],
+          labels = [];
+
+      // loop through our density intervals and generate a label with a colored square for each interval
+      for (var i = 0; i < grades.length; i++) {
+          div.innerHTML +=
+              '<i style="background:' + colorscale + '"></i> ' +
+              grades[i] + (grades[i + 1] ? '&ndash;' + grades[i + 1] + '<br>' : '+');
+      }
+
+      return div;
+  };
+
+    legend.addTo(this.map);
+
+
+
+
   // each feature has a custom style
   const style = (feature: Feature<Geometry, any> | undefined) => {
     const numbars = feature?.properties?.numbars
@@ -148,6 +183,7 @@ public addGeoJSON(geojson: FeatureCollection, adminLevel: string, unitInterest: 
       fillOpacity: 0.9,
     };
   };
+
 
   // each feature gets an additional popup!
   const onEachFeature = (feature: Feature<Geometry, any>, layer: L.Layer) => {
@@ -165,7 +201,7 @@ public addGeoJSON(geojson: FeatureCollection, adminLevel: string, unitInterest: 
   // create one geoJSON layer and add it to the map
   const geoJSON = L.geoJSON(geojson, {
     onEachFeature,
-    style,
+    style
   });
   geoJSON.addTo(this.map);
 }
