@@ -15,6 +15,9 @@ export class MapComponent implements OnInit {
   private amenitiesLayer: L.LayerGroup<any> = L.layerGroup();
   private healthLocationsLayer: L.LayerGroup<any> = L.layerGroup();
 
+  
+  private legend = L.control({ position: "bottomleft" });
+
   private _amenities: {
     name: string;
     latitude: number;
@@ -135,37 +138,30 @@ public addGeoJSON(geojson: FeatureCollection, adminLevel: string, unitInterest: 
     .domain([0, max])
     .interpolator(d3.interpolateViridis);
 
-    function getColor(d: any) {
-      return d > 1000 ? '#800026' :
-             d > 500  ? '#BD0026' :
-             d > 200  ? '#E31A1C' :
-             d > 100  ? '#FC4E2A' :
-             d > 50   ? '#FD8D3C' :
-             d > 20   ? '#FEB24C' :
-             d > 10   ? '#FED976' :
-                        '#FFEDA0';
-  }
-  var legend = new L.Control({position: 'bottomright'});
+  console.log(colorscale);
+  
 
-  legend.onAdd = function (map) {
+ 
 
-      var div = L.DomUtil.create('div', 'info legend'),
-          grades = [0, 10, 20, 50, 100, 200, 500, 1000],
-          labels = [];
-
-      // loop through our density intervals and generate a label with a colored square for each interval
-      for (var i = 0; i < grades.length; i++) {
-          div.innerHTML +=
-              '<i style="background:' + colorscale + '"></i> ' +
-              grades[i] + (grades[i + 1] ? '&ndash;' + grades[i + 1] + '<br>' : '+');
-      }
-
-      return div;
+  this.legend.onAdd = function(map: any) {
+    this.map = map;
+    var div = L.DomUtil.create("div", "legend");
+    div.innerHTML += "<h4>Tegnforklaring</h4>";
+    div.innerHTML += '<i style="background: #477AC2"></i><span>Water</span><br>';
+    div.innerHTML += '<i style="background: #448D40"></i><span>Forest</span><br>';
+    div.innerHTML += '<i style="background: #E6E696"></i><span>Land</span><br>';
+    div.innerHTML += '<i style="background: #E8E6E0"></i><span>Residential</span><br>';
+    div.innerHTML += '<i style="background: #FFFFFF"></i><span>Ice</span><br>';
+    div.innerHTML += '<i class="icon" style="background-image: url(https://d30y9cdsu7xlg0.cloudfront.net/png/194515-200.png);background-repeat: no-repeat;"></i><span>Grænse</span><br>';
+    
+    
+  
+    return div;
   };
+  
+  this.legend.addTo(this.map);
 
-    legend.addTo(this.map);
-
-
+    //console.log(this.map)
 
 
   // each feature has a custom style
