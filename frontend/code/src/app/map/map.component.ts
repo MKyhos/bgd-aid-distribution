@@ -17,6 +17,11 @@ export class MapComponent implements OnInit {
   private amenitiesLayer: L.LayerGroup<any> = L.layerGroup();
   private healthLocationsLayer: L.LayerGroup<any> = L.layerGroup();
   private legend = new L.Control({ position: "bottomleft" });
+  //private info = new L.Control({ position: "bottomright"});
+  private ctrl = new L.Control({ position: "topright" });
+  private div: any;
+  private layer: any;
+  //private ctrl: any;
 
 
 
@@ -58,7 +63,10 @@ export class MapComponent implements OnInit {
 
     // remove old amenities
     this.map.removeLayer(this.healthLocationsLayer);
-    this.map.removeLayer(this.legend)
+    //this.map.removeControl(this.ctrl)
+
+    
+
 
     // create a marker for each supplied amenity
     const markers = this.healthLocations.map((a) =>
@@ -132,6 +140,13 @@ public addGeoJSON(geojson: FeatureCollection, adminLevel: string, unitInterest: 
     geojson.features.map((f: Feature<Geometry, any>) => +f.properties.numbars)
   );
   // if max is undefined, enforce max = 1
+
+  console.log(max);
+  console.log('hi');
+
+
+
+
   if (!max) {
     max = 1;
   }
@@ -141,32 +156,94 @@ public addGeoJSON(geojson: FeatureCollection, adminLevel: string, unitInterest: 
     .domain([0, max])
     .interpolator(d3.interpolateViridis);
 
+const numbars = geojson.features.map((f: Feature<Geometry, any>) => +f.properties.numbars)
+//console.log(geojson.features);
+
+
+// Adjust the Infobox
+
+var geoJSON: any;
 
 
 
 
-  function getColor(d) {
-      return d > 1000 ? '#800026' :
-             d > 500  ? '#BD0026' :
-             d > 200  ? '#E31A1C' :
-             d > 100  ? '#FC4E2A' :
-             d > 50   ? '#FD8D3C' :
-             d > 20   ? '#FEB24C' :
-             d > 10   ? '#FED976' :
-                        '#FFEDA0';
+var MyControl = new L.Control({ position: "bottomleft" });
+
+  
+this.ctrl.onAdd =  ()=>{
+    // create the control container with a particular class name
+    //console.log(this);
+   
+    this.div = L.DomUtil.create('div', 'info');
+    this.div.innerHTML += "Hover over the "+ adminLevel +"s "+ "to see the number of " +unitInterest+ "." ;
+    L.DomEvent.disableClickPropagation(this.div);
+    return this.div;
   }
 
 
 
-this.legend.onAdd = function (feature: Feature<Geometry, any> | undefined) {
 
-  const numbars = feature?.properties?.numbars
-    ? feature.properties.numbars
-    : 0;
 
-  console.log(max, colorscale(max), Math.round(max/2), colorscale(Math.round(max/2)));
+//this.map.removeControl(this.ctrl);
+this.map.addControl(this.ctrl)
 
-  var div = L.DomUtil.create('div', 'info legend'),
+const highlightFeature = (e: any)=>{
+  this.layer = e.target;
+  console.log(this.layer.feature.properties)
+
+  
+
+  
+  
+  this.layer.setStyle({
+      weight: 1,
+      color: '#666',
+      dashArray: '',
+      fillOpacity: 0.7
+  });
+
+
+  if (!L.Browser.ie && !L.Browser.opera && !L.Browser.edge) {
+      this.layer.bringToFront();
+  }
+  console.log(this.layer.feature.properties);
+  this.div.innerHTML = adminLevel+ " "+'<b>'+this.layer.feature.properties.name +'</b>' +" has "+'<b>'+this.layer.feature.properties.numbars+'</b>'+" "+unitInterest;
+
+  //return this.div;
+
+}
+
+const resetHighlight = (e: any)=>{
+  geoJSON.resetStyle(e.target);
+
+  //
+  //this.ctrl.addTo(this.map)
+  //this.map.addControl(ctrl);
+  //this.info.update();
+}
+
+
+// function to fill infobox
+
+
+
+
+
+
+//Adjust the legend
+
+//const numbars = geojson.features.map((f: Feature<Geometry, any>) => +f.properties.numbars)
+
+
+this.legend.onAdd = function (numbars: any) {
+  if (!max) {
+    max = 1;
+  }
+ 
+
+  //console.log(max, colorscale(max), Math.round(max/2), colorscale(Math.round(max/2)));
+
+  var div = L.DomUtil.create('div', 'legend'),
       grades = [0, Math.round(max/8),
         Math.round(max/(8/2)),
         Math.round(max/(8/3)),
@@ -188,6 +265,7 @@ this.legend.onAdd = function (feature: Feature<Geometry, any> | undefined) {
 };
 
 this.legend.addTo(this.map);
+
 
     //console.log(this.map)
 
@@ -218,15 +296,17 @@ this.legend.addTo(this.map);
       feature.properties &&
       feature.properties.name &&
       typeof feature.properties.numbars !== 'undefined'
-    ) {
-      layer.bindPopup(
-        `${adminLevel} ${feature.properties.name} has ${feature.properties.numbars} ${unitInterest}`
-      );
-    }
+    ) layer.on({        
+      mouseover: highlightFeature,
+      mouseout: resetHighlight});
+      
+      
+      
+
   };
 
   // create one geoJSON layer and add it to the map
-  const geoJSON = L.geoJSON(geojson, {
+  geoJSON = L.geoJSON(geojson, {
     onEachFeature,
     style
   });

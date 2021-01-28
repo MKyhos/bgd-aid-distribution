@@ -54,7 +54,8 @@ def regions():
 def adminLevel():
     adminLevel = request.get_json()["adminLevel"]
     unitInterest = request.get_json()["unitInterest"]
-    query = """select id, nullif({1}, '')::float as count, ST_AsGeoJSON(geometry) as geometry from {0} where {1} is not null """.format(adminLevel + "_info", unitInterest)
+    query = """select id, nullif({1}, '')::float as count, ST_AsGeoJSON(geometry) as geometry
+            from {0} where {1} is not null """.format(adminLevel + "_info", unitInterest)
 
 
     # get results
@@ -94,4 +95,3 @@ select "facility type" as name, st_y(loc) as latitude, st_x(loc) as longitude fr
             results = cursor.fetchall()
 
     return jsonify([{'name': r[0], 'latitude': r[1], 'longitude': r[2]} for r in results]), 200
-
