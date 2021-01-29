@@ -95,3 +95,18 @@ select "facility type" as name, st_y(loc) as latitude, st_x(loc) as longitude fr
             results = cursor.fetchall()
 
     return jsonify([{'name': r[0], 'latitude': r[1], 'longitude': r[2]} for r in results]), 200
+
+
+@app.route('/pointpoly', methods=["GET", "POST"])
+def pointpoly():
+
+
+    query = """with region as (select st_geomfromtext(ci.geometry, 4326)as geo, id, individuals, families from subblock_info ci where ci.id = 'CXB-017_A146_01'),
+locations as (select st_geomfromtext(st_astext(st_makepoint("gps longitude", "gps latitude")), 4326)as loc, contamination_risk_score from tubewell t)
+select contamination_risk_score as name, st_y(loc) as latitude, st_x(loc) as longitude from locations l join region r on ST_Within(l.loc, r.geo)"""
+    with psycopg2.connect(host="database", port=5432, dbname="gis_db", user="gis_user", password="gis_pass") as conn:
+        with conn.cursor() as cursor:
+            cursor.execute(query)
+            results = cursor.fetchall()
+
+    return jsonify([{'name': r[0], 'latitude': r[1], 'longitude': r[2]} for r in results]), 200

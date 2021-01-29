@@ -96,7 +96,9 @@ export class SettingsComponent {
    * @param marker Latitude and longitude of the marker
    */
   addPubs(): void {
-    this.pubsAdded.emit(true);
+    //this.pubsAdded.emit(true);
+    console.log('hi');
+    
   }
 
   onAdSubmit(adminLevel: { adminLevel: string; unitInterest: string}): void {
