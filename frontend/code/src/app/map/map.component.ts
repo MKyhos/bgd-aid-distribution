@@ -1,4 +1,4 @@
-import { Component, Input, OnInit, ViewEncapsulation, ViewChild, ElementRef} from '@angular/core';
+import { Component, Input, Output,EventEmitter, OnInit, ViewEncapsulation, ViewChild, ElementRef} from '@angular/core';
 
 import { Feature, FeatureCollection, Geometry, MultiPolygon } from 'geojson';
 import * as L from 'leaflet';
@@ -23,7 +23,10 @@ export class MapComponent implements OnInit {
   private div: any;
   private layer: any;
   private clickr: boolean = false;
+  private adminLevel: any;
+  private unitInterest: any;
   @ViewChild('overview') child!:ElementRef<HTMLButtonElement>;
+  @ViewChild('points') child2!:ElementRef<HTMLButtonElement>;
   //private ctrl: any;
 
 
@@ -50,6 +53,12 @@ export class MapComponent implements OnInit {
   get healthLocations(): { name: string; latitude: number; longitude: number }[] {
     return this._healthLocations;
   }
+
+  @Output()
+  locationAdded: EventEmitter<{
+    adminLevel: string;
+    unitName: string;
+  }> = new EventEmitter<{ adminLevel: string; unitName: string }>();
 
   @Input()
   set healthLocations(
@@ -133,6 +142,9 @@ export class MapComponent implements OnInit {
   
   enableButton(){
     this.child.nativeElement.style.visibility = 'unset';
+    if(this.unitInterest != 'individuals'&& this.unitInterest != 'families'){
+    this.child2.nativeElement.style.visibility = 'unset';}
+    
     
   }
 
@@ -140,9 +152,15 @@ export class MapComponent implements OnInit {
     this.child.nativeElement.style.visibility = 'hidden';
     this.clickr=false;
     this.map.setView([21.05, 92.29], 11)
+    this.map.removeLayer(this.healthLocationsLayer);
     
     
 
+  }
+
+  showLocations(info= { adminLevel: this.adminLevel, unitName: this.layer.feature.properties.name}): void{
+    this.locationAdded.emit(info);
+    
   }
 
   
@@ -153,8 +171,8 @@ export class MapComponent implements OnInit {
   public addGeoJSON(geojson: FeatureCollection, adminLevel: string, unitInterest: string): void {
     // find maximum numbars value in array
 
-
-
+    this.unitInterest = unitInterest;
+    this.adminLevel = adminLevel;
     let max = d3.max(
       geojson.features.map((f: Feature<Geometry, any>) => +f.properties.numbars)
     );

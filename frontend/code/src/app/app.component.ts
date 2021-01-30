@@ -48,6 +48,21 @@ export class AppComponent {
     });
   }
 
+
+  onLocationAdded($event: { adminLevel: string;  unitName: string }){
+    console.log('this is',$event.adminLevel);
+    console.log('this is',$event.unitName);
+    this.dataservice.getHealthLocation($event.adminLevel, $event.unitName).subscribe((healthLocation) => {
+      this.healthLocation=healthLocation;
+      console.log(this.healthLocation);
+      
+      
+    });
+    //console.log();
+    
+    
+  }
+
   // adminLevel
   onAdminLevelAdded($event: { adminLevel: string; unitInterest: string}){
     //console.log(unitInterest);
@@ -67,7 +82,7 @@ export class AppComponent {
   )};
 
   onHealthLocationAdded($event: { healthLocation: string }) {
-    this.dataservice.getHealthLocation($event.healthLocation).subscribe((healthLocation) => {
+    this.dataservice.getHealthLocation($event.healthLocation, "placehold").subscribe((healthLocation) => {
     this.healthLocation = healthLocation;
 
   }

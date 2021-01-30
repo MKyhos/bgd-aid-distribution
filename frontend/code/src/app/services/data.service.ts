@@ -28,18 +28,18 @@ export class DataService {
     >(url, {}, httpOptions);
   }
 
-  public getHealthLocation(healthLocation: string): Observable<
+  public getHealthLocation(adminLevel: string, unitName: string): Observable<
     { name: string; latitude: number; longitude: number }[]
-  > {
-    const url = 'http://localhost:5000/health';
-
-
-
-    return this.http.post<
-      { name: string; latitude: number; longitude: number }[]
-    >(url, {healthLocation}, httpOptions);
-
-  }
+    > {
+      const url = 'http://localhost:5000/pointpoly';
+    
+    
+    
+      return this.http.post<
+        { name: string; latitude: number; longitude: number }[]
+      >(url, {adminLevel, unitName}, httpOptions);
+    
+    }
 
   public getAmenities(amenity: string): Observable<
   { name: string; latitude: number; longitude: number }[]
@@ -62,5 +62,19 @@ export class DataService {
   public getRegions(): Observable<FeatureCollection> {
     const url = 'http://localhost:5000/regions';
     return this.http.post<FeatureCollection>(url, {}, httpOptions);
+  }
+
+  public getLocations(adminLevel: string, unitName: string): Observable<
+  { name: string; latitude: number; longitude: number }[]
+> {
+  const url = 'http://localhost:5000/pointpoly';
+
+
+
+  return this.http.post<
+    { name: string; latitude: number; longitude: number }[]
+  >(url, {adminLevel, unitName}, httpOptions);
+
 }
+
 }
