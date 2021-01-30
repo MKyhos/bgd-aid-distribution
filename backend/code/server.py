@@ -101,6 +101,12 @@ select "facility type" as name, st_y(loc) as latitude, st_x(loc) as longitude fr
 def pointpoly():
     adminLevel = request.get_json()["adminLevel"]
     unitName = request.get_json()["unitName"]
+    unitInterest = request.get_json()["unitInterest"]
+    
+    if unitInterest == 'persons_per_tube':
+        points = 'tubewell'
+    elif unitInterest == 'persons_per_latrine':
+        points = 'latrines'
 
     query = """
 with region as 
@@ -109,10 +115,10 @@ with region as
     where ci.id = '{1}'),
 locations as 
     (select st_geomfromtext(st_astext(st_makepoint("gps longitude", "gps latitude")), 4326)as loc, contamination_risk_score 
-    from tubewell t)
+    from {2} t)
     select contamination_risk_score as name, st_y(loc) as latitude, st_x(loc) as longitude 
     from locations l 
-    join region r on ST_Within(l.loc, r.geo)""".format(adminLevel + "_info", unitName)
+    join region r on ST_Within(l.loc, r.geo)""".format(adminLevel + "_info", unitName, points)
     with psycopg2.connect(host="database", port=5432, dbname="gis_db", user="gis_user", password="gis_pass") as conn:
         with conn.cursor() as cursor:
             cursor.execute(query)

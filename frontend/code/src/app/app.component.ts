@@ -49,10 +49,10 @@ export class AppComponent {
   }
 
 
-  onLocationAdded($event: { adminLevel: string;  unitName: string }){
+  onLocationAdded($event: { adminLevel: string;  unitName: string; unitInterest: string }){
     console.log('this is',$event.adminLevel);
     console.log('this is',$event.unitName);
-    this.dataservice.getHealthLocation($event.adminLevel, $event.unitName).subscribe((healthLocation) => {
+    this.dataservice.getHealthLocation($event.adminLevel, $event.unitName, $event.unitInterest).subscribe((healthLocation) => {
       this.healthLocation=healthLocation;
       console.log(this.healthLocation);
       
@@ -82,7 +82,7 @@ export class AppComponent {
   )};
 
   onHealthLocationAdded($event: { healthLocation: string }) {
-    this.dataservice.getHealthLocation($event.healthLocation, "placehold").subscribe((healthLocation) => {
+    this.dataservice.getHealthLocation($event.healthLocation, "placehold", "placehold").subscribe((healthLocation) => {
     this.healthLocation = healthLocation;
 
   }

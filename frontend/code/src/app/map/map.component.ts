@@ -58,7 +58,8 @@ export class MapComponent implements OnInit {
   locationAdded: EventEmitter<{
     adminLevel: string;
     unitName: string;
-  }> = new EventEmitter<{ adminLevel: string; unitName: string }>();
+    unitInterest: string;
+  }> = new EventEmitter<{ adminLevel: string; unitName: string; unitInterest: string}>();
 
   @Input()
   set healthLocations(
@@ -158,7 +159,7 @@ export class MapComponent implements OnInit {
 
   }
 
-  showLocations(info= { adminLevel: this.adminLevel, unitName: this.layer.feature.properties.name}): void{
+  showLocations(info= { adminLevel: this.adminLevel, unitName: this.layer.feature.properties.name, unitInterest: this.unitInterest}): void{
     this.locationAdded.emit(info);
     
   }
@@ -173,6 +174,7 @@ export class MapComponent implements OnInit {
 
     this.unitInterest = unitInterest;
     this.adminLevel = adminLevel;
+    
     let max = d3.max(
       geojson.features.map((f: Feature<Geometry, any>) => +f.properties.numbars)
     );

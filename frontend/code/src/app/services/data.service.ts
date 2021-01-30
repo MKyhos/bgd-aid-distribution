@@ -28,7 +28,7 @@ export class DataService {
     >(url, {}, httpOptions);
   }
 
-  public getHealthLocation(adminLevel: string, unitName: string): Observable<
+  public getHealthLocation(adminLevel: string, unitName: string, unitInterest: string): Observable<
     { name: string; latitude: number; longitude: number }[]
     > {
       const url = 'http://localhost:5000/pointpoly';
@@ -37,7 +37,7 @@ export class DataService {
     
       return this.http.post<
         { name: string; latitude: number; longitude: number }[]
-      >(url, {adminLevel, unitName}, httpOptions);
+      >(url, {adminLevel, unitName, unitInterest}, httpOptions);
     
     }
 
