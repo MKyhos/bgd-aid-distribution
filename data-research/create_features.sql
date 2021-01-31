@@ -8,13 +8,35 @@
   - Calculate distances, floods, distribute population
 
   #TODO To be added if desired:
-  - Materialized views suitable for joining / optimizig the frontend
-    queries.
   - Voronoi partition for facilities, calculate per-facitility population
     etc.
 */
 
--- Create Table of OSM Buildings:
+
+
+-- Create Table reach_infra_voronoi
+-- #TODO Clip to camp boundaries.
+
+CREATE TABLE reach_infra_voronoi (
+  WITH
+    extend AS (
+      SELECT ST_Union(geom) AS geom
+      FROM geo_admin
+      ),
+    inter AS (
+      SELECT gri.class, gri.type,
+        e.geom AS e_geom,
+        ST_Collect(gri.geom) AS point_geom
+      FROM geo_reach_infra AS gri, extend AS e
+      GROUP BY 1, 2, 3
+    )
+    SELECT class, type,
+      ST_VoronoiPolygons(g1 => point_geom) AS geom
+    FROM inter
+);
+
+
+-- Create Table of OSM Buildings:tqq
 
 CREATE TABLE buildings AS (
   SELECT DISTINCT ON (osm_id) 
