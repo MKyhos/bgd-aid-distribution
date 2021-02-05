@@ -60,19 +60,44 @@
         <option value="site">Site</option>
         <option value="camp">Camp</option>
         <option value="block">Block</option>
-        <option value="subblock">Sub-Block</option>
+        <option value="sblock">Sub-Block</option>
       </select>
     </mat-form-field>
     <mat-form-field appearance="fill">
-      <mat-label>Unit of interest</mat-label>
-      <select matNativeControl required formControlName=unitInterest>
-        <option value="families">Families</option>
-        <option value="individuals">Individuals</option>
-        <option value="persons_per_tube">Individuals per Tubewell</option>
-        <option value="persons_per_latrine">Individuals per Latrine</option>
+      <mat-label>Operation</mat-label>
+      <select matNativeControl required formControlName=calculation>
+        <option value="n_">count</option>
+        <option value="dist_">distance to</option>
+        <option value="pop_per">persons per</option>
       </select>
     </mat-form-field>
+    <mat-form-field appearance="fill" width.px="500">
+      <mat-label>Unit of interest</mat-label>
+      <select matNativeControl required formControlName=unitInterest>
+        <option value="pop_female">Count Female Individuals</option>
+        <option value="population">Count Individuals</option>
+        <option value="tube">Tubewells</option>
+        <option value="latr">Latrines</option>
+        <option value="bath">Bathing facilities</option>
+        <option value="nutr">Distance to Nutrition facilities</option>
+        <option value="wpro">Distance to Women protection areas</option>
+        <option value="heal">Distance to Heal Facilities</option>
+      </select>
+    </mat-form-field>
+
+
+
+    
+  
+
+    
   </form>
+
+  
+
+ 
+
+
 
   <form
     id="healthsite-form"

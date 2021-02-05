@@ -54,9 +54,9 @@ export class DataService {
 
 }
 
-  public getAdminLevel(adminLevel: string, unitInterest: string): Observable<FeatureCollection> {
+  public getAdminLevel(adminLevel: string, calculation: string, unitInterest: string): Observable<FeatureCollection> {
     const url = 'http://localhost:5000/adminLevel';
-    return this.http.post<FeatureCollection>(url, {adminLevel, unitInterest}, httpOptions);
+    return this.http.post<FeatureCollection>(url, {adminLevel, calculation, unitInterest}, httpOptions);
 
   }
   public getRegions(): Observable<FeatureCollection> {

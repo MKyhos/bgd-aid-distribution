@@ -53,9 +53,12 @@ def regions():
 @app.route('/adminLevel', methods=['GET', "POST"])
 def adminLevel():
     adminLevel = request.get_json()["adminLevel"]
+    calculation = request.get_json()["calculation"]
     unitInterest = request.get_json()["unitInterest"]
-    query = """select id, nullif({1}, '')::float as count, ST_AsGeoJSON(geometry) as geometry
-            from {0} where {1} is not null """.format(adminLevel + "_info", unitInterest)
+    query = """select {2} as id, {1}::float as count, ST_AsGeoJSON(geom) as geometry
+            from {0} 
+            where {1} is not null 
+            """.format("tbl_"+adminLevel + "_features", calculation+unitInterest, adminLevel+"_id")
 
 
     # get results
@@ -103,10 +106,12 @@ def pointpoly():
     unitName = request.get_json()["unitName"]
     unitInterest = request.get_json()["unitInterest"]
     
-    if unitInterest == 'persons_per_tube':
+    if unitInterest == 'tube':
         points = 'tubewell'
-    elif unitInterest == 'persons_per_latrine':
+        addinfo = 'contamination_risk_score'
+    elif unitInterest == 'latrine':
         points = 'latrines'
+        addinfo = 'type_of_structure'
 
     query = """
 with region as 
@@ -114,11 +119,11 @@ with region as
     from {0} ci 
     where ci.id = '{1}'),
 locations as 
-    (select st_geomfromtext(st_astext(st_makepoint("gps longitude", "gps latitude")), 4326)as loc, contamination_risk_score 
+    (select st_geomfromtext(st_astext(st_makepoint("gps longitude"::float, "gps latitude"::float)), 4326)as loc, {3}
     from {2} t)
-    select contamination_risk_score as name, st_y(loc) as latitude, st_x(loc) as longitude 
+    select {3} as name, st_y(loc) as latitude, st_x(loc) as longitude 
     from locations l 
-    join region r on ST_Within(l.loc, r.geo)""".format(adminLevel + "_info", unitName, points)
+    join region r on ST_Within(l.loc, r.geo)""".format(adminLevel + "_info", unitName, points, addinfo)
     with psycopg2.connect(host="database", port=5432, dbname="gis_db", user="gis_user", password="gis_pass") as conn:
         with conn.cursor() as cursor:
             cursor.execute(query)
