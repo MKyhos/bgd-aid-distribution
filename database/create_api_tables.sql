@@ -23,8 +23,10 @@ DROP TABLE IF EXISTS tbl_camp_features;
 -- SBLOCK Level
 
 CREATE TABLE tbl_sblock_features AS (
-  SELECT b.*, (b.population / (st_area(g.geom) / 1000)) as pop_perArea, g.geom
-  FROM (
+  SELECT g.*, b.population, b.pop_female, b.pop_perBuild, 
+  b.dist_bath, b.dist_latr, b.dist_tube, b.dist_heal, b.dist_nutr, b.dist_wpro,
+  b.count_buildings, (b.population / (st_area(g.geom) / 1000)) as pop_perArea
+  FROM geo_admin AS g left join (
     SELECT
       camp_id,
       block_id,
@@ -41,9 +43,7 @@ CREATE TABLE tbl_sblock_features AS (
       Cast(Count(*) AS integer) AS count_buildings
     FROM buildings
     GROUP BY 1, 2, 3
-  ) AS b,
-  geo_admin AS g
-  WHERE b.sblock_id = g.sblock_id
+  ) AS b on b.sblock_id = g.sblock_id
 );
 
 ALTER TABLE tbl_sblock_features
@@ -110,7 +110,7 @@ from percent_flooded
 where tbl_sblock_features.sblock_id = percent_flooded.sblock_id;
 
 --aggregate the number of people per amenity:
-UPDATE tbl_sblock_features 
+/*UPDATE tbl_sblock_features 
   set
     pop_perLatr = population / nullif(n_latr, 0),
     pop_perHeal = population / nullif(n_heal, 0),
@@ -118,9 +118,53 @@ UPDATE tbl_sblock_features
     wmn_perWpro = pop_female / nullif(n_wpro, 0),
     pop_perTube = population / nullif(n_tube, 0),
     pop_endangered = population * perc_tube_risk / 100,
-    pop_perBath = population / nullif(n_bath, 0);
+    pop_perBath = population / nullif(n_bath, 0);*/
 
-   
+update tbl_sblock_features t
+set pop_perBath = vb.pop, 
+    pop_perLatr = vl.pop, 
+    pop_perTube = vt.pop,
+    pop_endangered = r.pop_endangered,
+    pop_perHeal = vh.pop, 
+    pop_perNutr = vn.pop, 
+    wmn_perWpro = vw.pop
+from (select t.sblock_id, avg(v.population) as pop          
+      from tbl_sblock_features t 
+      left join voronoi_bath v on st_intersects(t.geom, v.point)
+      group by t.sblock_id) as vb,
+     (select t.sblock_id, avg(v.population) as pop
+      from tbl_sblock_features t
+      left join voronoi_latr v on st_intersects(t.geom, v.point)
+      group by t.sblock_id) as vl,
+     (select t.sblock_id, avg(v.population) as pop         
+      from tbl_sblock_features t 
+      left join voronoi_tube v on st_intersects(t.geom, v.point)
+      group by t.sblock_id) as vt,
+     (select t.sblock_id, sum(v.population) as pop_endangered 
+      from tbl_sblock_features t
+      left join voronoi_tube v on st_intersects(t.geom, v.point)
+      where contamination_risk_score in ('very high', 'high', 'intermediate')
+      group by t.sblock_id) as r,
+     (select t.sblock_id, avg(v.population) as pop         
+      from tbl_sblock_features t 
+      left join voronoi_heal v on st_intersects(t.geom, v.point)
+      group by t.sblock_id) as vh, 
+     (select t.sblock_id, avg(v.population) as pop         
+      from tbl_sblock_features t 
+      left join voronoi_nutr v on st_intersects(t.geom, v.point)
+      group by t.sblock_id) as vn,  
+     (select t.sblock_id, avg(v.population) as pop         
+      from tbl_sblock_features t 
+      left join voronoi_wpro v on st_intersects(t.geom, v.point)
+      group by t.sblock_id) as vw
+where t.sblock_id = vb.sblock_id
+  and t.sblock_id = vl.sblock_id
+  and t.sblock_id = vt.sblock_id
+  and t.sblock_id = r.sblock_id
+  and t.sblock_id = vh.sblock_id
+  and t.sblock_id = vn.sblock_id
+  and t.sblock_id = vw.sblock_id
+    
 -- Transforming the SRID to webmercator (which is then inherited to the
 -- following tables), and add a primary key:
 ALTER TABLE tbl_sblock_features
@@ -133,52 +177,47 @@ ALTER TABLE tbl_sblock_features
 -- Instead 
 
 CREATE TABLE public.tbl_block_features AS (
-  SELECT b.camp_id, b.block_id, sb.population, sb.pop_female, 
+  SELECT sb.camp_id, sb.block_id, sb.population, sb.pop_female, 
     b.pop_perBuild, (sb.population / st_area(sb.geom)) as pop_perArea,
     b.dist_heal, b.dist_bath, b.dist_latr, b.dist_nutr, b.dist_wpro, b.dist_tube, 
     b.count_buildings, 
     sb.n_bath, sb.n_latr, sb.n_tube, sb.n_tube_high_risk, sb.n_tube_inter_risk, sb.perc_tube_risk,
-    sb.population * sb.perc_tube_risk as pop_endangered,
-    sb.n_heal, sb.n_nutr, sb.n_wpro, 
-    (sb.population / nullif(sb.n_bath, 0)) as pop_perBath,
-    (sb.population / nullif(sb.n_latr, 0)) as pop_perLatr,
-    (sb.population / nullif(sb.n_tube, 0)) as pop_perTube,
-    (sb.population / nullif(sb.n_heal, 0)) as pop_perHeal,
-    (sb.population / nullif(sb.n_nutr, 0)) as pop_perNutr,
-    (sb.pop_female / nullif(sb.n_wpro, 0)) as wmn_perWpro,    
+    sb.pop_endangered, sb.n_heal, sb.n_nutr, sb.n_wpro, 
+    sb.pop_perBath, sb.pop_perLatr, sb.pop_perTube, sb.pop_perHeal, sb.pop_perNutr, sb.wmn_perWpro,    
     sb.geom
-  FROM (
-    SELECT 
-      camp_id,
-      block_id,
-      Avg(dist_heal) AS dist_heal,
-      Avg(dist_bath) AS dist_bath,
-      Avg(dist_latr) AS dist_latr,
-      Avg(dist_nutr) AS dist_nutr,
-      Avg(dist_wpro) AS dist_wpro,
-      Avg(dist_tube) AS dist_tube,
-      Count(*)::int AS count_buildings,
-      Avg(population) as pop_perBuild
-    FROM buildings
-    GROUP BY 1, 2
-  ) AS b, (
-    SELECT block_id,
-      Sum(population)::int AS population,
-      Sum(pop_female)::int AS pop_female,
-      Sum(n_tube)::int AS n_tube,
-      sum(n_tube_high_risk)::int as n_tube_high_risk,
-      sum(n_tube_inter_risk)::int as n_tube_inter_risk,
-      (100 / nullif(Sum(n_tube)::int, 0)) * (sum(n_tube_high_risk)::int + sum(n_tube_inter_risk)::int) as perc_tube_risk,
-      Sum(n_latr)::int AS n_latr,
-      Sum(n_bath)::int AS n_bath,
-      Sum(n_wpro)::int AS n_wpro,
-      Sum(n_heal)::int AS n_heal,
-      Sum(n_nutr)::int AS n_nutr,
-      ST_Union(geom) AS geom
-    FROM tbl_sblock_features
-    GROUP BY 1  
-    ) AS sb
-  WHERE b.block_id = sb.block_id
+  FROM (SELECT camp_id, block_id,
+          Sum(population)::int AS population,
+          Sum(pop_female)::int AS pop_female,
+          Sum(n_tube)::int AS n_tube,
+          sum(n_tube_high_risk)::int as n_tube_high_risk,
+          sum(n_tube_inter_risk)::int as n_tube_inter_risk,
+          (100 / nullif(Sum(n_tube)::int, 0)) * (sum(n_tube_high_risk)::int + sum(n_tube_inter_risk)::int) as perc_tube_risk,
+          Sum(n_latr)::int AS n_latr,
+          Sum(n_bath)::int AS n_bath,
+          Sum(n_wpro)::int AS n_wpro,
+          Sum(n_heal)::int AS n_heal,
+          Sum(n_nutr)::int AS n_nutr,
+          avg(pop_perBath) as pop_perBath,
+          avg(pop_perLatr) as pop_perLatr,
+          avg(pop_perTube) as pop_perTube,
+          sum(pop_endangered) as pop_endangered,
+          avg(pop_perHeal) as pop_perHeal,
+          avg(pop_perNutr) as pop_perNutr,
+          avg(wmn_perWpro) as wmn_perWpro,    
+          ST_Union(geom) AS geom
+        FROM tbl_sblock_features
+        GROUP BY 1, 2) AS sb 
+  left join (SELECT block_id,
+                    Avg(dist_heal) AS dist_heal,
+                    Avg(dist_bath) AS dist_bath,
+                    Avg(dist_latr) AS dist_latr,
+                    Avg(dist_nutr) AS dist_nutr,
+                    Avg(dist_wpro) AS dist_wpro,
+                    Avg(dist_tube) AS dist_tube,
+                    Count(*)::int AS count_buildings,
+                    Avg(population) as pop_perBuild
+             FROM buildings
+             GROUP BY 1) AS b on sb.block_id = b.block_id
 );
 
 --aggregate flood data per block: 
@@ -213,33 +252,14 @@ ALTER TABLE tbl_block_features
 
 CREATE TABLE public.tbl_camp_features AS (
   SELECT b.camp_id, sb.population, sb.pop_female, 
-    b.pop_perBuild, (sb.population / st_area(sb.geom)) as pop_perArea,
+    b.pop_perBuild, (sb.population / st_area(sb.geom)) as pop_perArea, 
     b.dist_heal, b.dist_bath, b.dist_latr, b.dist_nutr, b.dist_wpro, b.dist_tube, 
     b.count_buildings, 
     sb.n_bath, sb.n_latr, sb.n_tube, sb.n_tube_high_risk, sb.n_tube_inter_risk, sb.perc_tube_risk,
-    sb.population * sb.perc_tube_risk as pop_endangered,
-    sb.n_heal, sb.n_nutr, sb.n_wpro, 
-    (sb.population / nullif(sb.n_bath, 0)) as pop_perBath,
-    (sb.population / nullif(sb.n_latr, 0)) as pop_perLatr,
-    (sb.population / nullif(sb.n_tube, 0)) as pop_perTube,
-    (sb.population / nullif(sb.n_heal, 0)) as pop_perHeal,
-    (sb.population / nullif(sb.n_nutr, 0)) as pop_perNutr,
-    (sb.pop_female / nullif(sb.n_wpro, 0)) as wmn_perWpro,    
+    sb.pop_endangered, sb.n_heal, sb.n_nutr, sb.n_wpro, 
+    sb.pop_perBath, sb.pop_perLatr, sb.pop_perTube, sb.pop_perHeal, sb.pop_perNutr, sb.wmn_perWpro,    
     sb.geom
   FROM (
-    SELECT 
-      camp_id,
-      Avg(dist_heal) AS dist_heal,
-      Avg(dist_bath) AS dist_bath,
-      Avg(dist_latr) AS dist_latr,
-      Avg(dist_nutr) AS dist_nutr,
-      Avg(dist_wpro) AS dist_wpro,
-      Avg(dist_tube) AS dist_tube,
-      Count(*)::int AS count_buildings,
-      Avg(population) as pop_perBuild
-    FROM buildings
-    GROUP BY 1
-  ) AS b, (
     SELECT camp_id,
       Sum(population)::int AS population,
       Sum(pop_female)::int AS pop_female,
@@ -252,11 +272,30 @@ CREATE TABLE public.tbl_camp_features AS (
       Sum(n_wpro)::int AS n_wpro,
       Sum(n_heal)::int AS n_heal,
       Sum(n_nutr)::int AS n_nutr,
+      avg(pop_perBath) as pop_perBath,
+      avg(pop_perLatr) as pop_perLatr,
+      avg(pop_perTube) as pop_perTube,
+      sum(pop_endangered) as pop_endangered,
+      avg(pop_perHeal) as pop_perHeal,
+      avg(pop_perNutr) as pop_perNutr,
+      avg(wmn_perWpro) as wmn_perWpro,    
       ST_Union(geom) AS geom
     FROM tbl_block_features
     GROUP BY 1  
-    ) AS sb
-  WHERE b.camp_id = sb.camp_id
+    ) AS sb left join 
+    (SELECT 
+      camp_id,
+      Avg(dist_heal) AS dist_heal,
+      Avg(dist_bath) AS dist_bath,
+      Avg(dist_latr) AS dist_latr,
+      Avg(dist_nutr) AS dist_nutr,
+      Avg(dist_wpro) AS dist_wpro,
+      Avg(dist_tube) AS dist_tube,
+      Count(*)::int AS count_buildings,
+      Avg(population) as pop_perBuild
+    FROM buildings
+    GROUP BY 1
+  ) AS b on sb.camp_id = b.camp_id
 );
 
 --aggregate flood data per camp: 
