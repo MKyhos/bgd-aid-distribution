@@ -1,10 +1,10 @@
-import { Component, EventEmitter, Output } from '@angular/core';
-import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { Component, EventEmitter, Output, ViewEncapsulation} from '@angular/core';
+import { FormBuilder, FormGroup,  Validators } from '@angular/forms';
 
 @Component({
   selector: 'app-settings',
   templateUrl: './settings.component.html',
-  styleUrls: ['./settings.component.scss'],
+  styleUrls: ['./settings.component.scss']
 })
 export class SettingsComponent {
   // this output can be listened to in the parent component
@@ -22,8 +22,9 @@ export class SettingsComponent {
   @Output()
   adminLevelAdded: EventEmitter<{
     adminLevel: string;
+    calculation: string;
     unitInterest: string;
-  }> = new EventEmitter<{ adminLevel: string; unitInterest: string }>();
+  }> = new EventEmitter<{ adminLevel: string; calculation: string; unitInterest: string }>();
 
 
   // amenity type listenable in parent
@@ -66,10 +67,15 @@ export class SettingsComponent {
   //      Validators.required,
   //    ]),
   //  });
+
+
+    
     this.adminForm = fb.group({
       adminLevel: fb.control('camp', [
         Validators.required      ]),
-      unitInterest: fb.control('individuals', [
+      calculation: fb.control('n_', [
+          Validators.required      ]),
+      unitInterest: fb.control('tube', [
         Validators.required
       ])
 
@@ -101,8 +107,21 @@ export class SettingsComponent {
     
   }
 
-  onAdSubmit(adminLevel: { adminLevel: string; unitInterest: string}): void {
+  onAdSubmit(adminLevel: { adminLevel: string; calculation: string; unitInterest: string}): void {
+    if(adminLevel.unitInterest == 'population'|| adminLevel.unitInterest == 'pop_female'){
+      adminLevel.calculation='n_';
+      this.adminForm.controls.calculation.disable()}
+
+    else if(adminLevel.unitInterest == 'wpro'||adminLevel.unitInterest == 'heal'||adminLevel.unitInterest == 'nutr'){
+      adminLevel.calculation = 'dist_'
+      this.adminForm.controls.calculation.disable(); 
+    }
+    else{
+      this.adminForm.controls.calculation.enable();
+      adminLevel.calculation = this.adminForm.controls.calculation._pendingValue;
+    };
     this.adminLevelAdded.emit(adminLevel);
+    
     //console.log(adminLevel);
   }
 

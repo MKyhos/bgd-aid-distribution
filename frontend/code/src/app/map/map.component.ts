@@ -151,6 +151,7 @@ export class MapComponent implements OnInit {
 
   restoreOverview(){
     this.child.nativeElement.style.visibility = 'hidden';
+    this.child2.nativeElement.style.visibility = 'hidden';
     this.clickr=false;
     this.map.setView([21.05, 92.29], 11)
     this.map.removeLayer(this.healthLocationsLayer);

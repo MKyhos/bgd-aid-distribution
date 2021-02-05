@@ -12,6 +12,13 @@
   margin: 10px;
 }
 
+#admin-form {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  margin: 10px;
+}
+
 
 
 #location-form > *:not(:first-child),
