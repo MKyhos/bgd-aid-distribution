@@ -31,7 +31,7 @@ CREATE TABLE buildings AS (
 );
 
 ALTER TABLE buildings
-  ALTER COLUMN geom TYPE geometry(POINT, 3160) USING ST_SetSRID(geom, 3160);
+  ALTER COLUMN geom TYPE geometry(POINT, 4326) USING ST_SetSRID(geom, 4326);
 
 CREATE INDEX buildings_idx
   ON buildings USING GIST(geom);
@@ -112,121 +112,6 @@ UPDATE buildings AS b1
   JOIN camp_info AS ci ON d.block_id = ci.block_id
   WHERE b1.block_id = d.block_id;
 
-/*
-  For every building: calculate distance to nearest instance of
-  - bath
-  - tubewells
-  - nutrition services
-  - women protection areas
-  - latrines
-  - health facilities
-
-*/
--- 1. Bathing stuff
-UPDATE buildings AS b1
-  SET dist_bath = v.distance
- from (SELECT b1.id, ST_Distance(b1.geom, v.point) as distance
-       FROM   voronoi_bath v join buildings b1 on st_intersects(b1.geom, v.geom)) as v
- where b1.id = v.id;
- --takes: ~ 5sec. (if voronoi_bath is a table)
- --takes: ~28sec. (if voronoi_bath is a view)
- 
-/*UPDATE buildings AS b1
-  SET dist_bath = (
-    SELECT ST_Distance(b1.geom, gri.geom)
-    FROM geo_reach_infra AS gri
-    WHERE class = 'sanitation' AND type != 'latrine'
-    ORDER BY b1.geom <-> gri.geom
-    LIMIT 1
-  ); --takes: <1 min*/
-
--- 2. Tubewells
-UPDATE buildings AS b1
-  SET dist_tube = v.distance
- from (SELECT b1.id, ST_Distance(b1.geom, v.point) as distance
-       FROM   voronoi_tube v join buildings b1 on st_intersects(b1.geom, v.geom)) as v
- where b1.id = v.id;
- --takes: ~ 5sec. (if voronoi is a table)
-
-/*UPDATE buildings AS b1
-  SET dist_tube = (
-    SELECT ST_Distance(b1.geom, gri.geom)
-    FROM geo_reach_infra AS gri
-    WHERE class = 'tubewell'
-    ORDER BY b1.geom <-> gri.geom
-    LIMIT 1
-  );*/
-
--- 3. nutrition servicves
-UPDATE buildings AS b1
-  SET dist_nutr = v.distance
- from (SELECT b1.id, ST_Distance(b1.geom, v.point) as distance
-       FROM   voronoi_nutr v join buildings b1 on st_intersects(b1.geom, v.geom)) as v
- where b1.id = v.id;
---takes: ~ 5sec. (if voronoi is table)
-
-/*UPDATE buildings AS b1
-  SET dist_nutr = (
-    SELECT ST_Distance(b1.geom, gri.geom)
-    FROM geo_reach_infra AS gri
-    WHERE class = 'nutrition_service'
-    ORDER BY b1.geom <-> gri.geom
-    LIMIT 1
-  );*/
-
- -- 4. Women protection zones
- UPDATE buildings AS b1
-  SET dist_wpro = v.distance
- from (SELECT b1.id, ST_Distance(b1.geom, v.point) as distance
-       FROM   voronoi_wpro v join buildings b1 on st_intersects(b1.geom, v.geom)) as v
- where b1.id = v.id;
- --takes:   3sec. (if voronoi is a table)
- --takes: ~11sec. (if voronoi is a view)
-
-/*UPDATE buildings AS b1
-  SET dist_wpro = (
-    SELECT ST_Distance(b1.geom, gri.geom)
-    FROM geo_reach_infra AS gri
-    WHERE class = 'women_protection'
-    ORDER BY b1.geom <-> gri.geom
-    LIMIT 1
-  );*/
-
--- 5. Latrines 
-UPDATE buildings AS b1
-  SET dist_latr = v.distance
- from (SELECT b1.id, ST_Distance(b1.geom, v.point) as distance
-       FROM   voronoi_latr v join buildings b1 on st_intersects(b1.geom, v.geom)) as v
- where b1.id = v.id;
- --takes: ~ 3sec. (if voronoi is a table)
-
-/*
-UPDATE buildings AS b1
-  SET dist_latr = (
-    SELECT ST_Distance(b1.geom, gri.geom)
-    FROM geo_reach_infra AS gri
-    WHERE class = 'sanitation' AND type != 'bathing'
-    ORDER BY b1.geom <-> gri.geom
-    LIMIT 1
-  );
-*/
-
--- 6. Health care facilities
-UPDATE buildings AS b1
-  SET dist_heal = v.distance
- from (SELECT b1.id, ST_Distance(b1.geom, v.point) as distance
-       FROM   voronoi_heal v join buildings b1 on st_intersects(b1.geom, v.geom)) as v
- where b1.id = v.id;
- --takes: ~ 3sec. (if voronoi is a table)
- 
-/*UPDATE buildings AS b1
-  SET dist_heal = (
-    SELECT ST_Distance(b1.geom, gri.geom)
-    FROM geo_reach_infra AS gri
-    WHERE class = 'health_service'
-    ORDER BY b1.geom <-> gri.geom
-    LIMIT 1
-  );*/
 
 
  

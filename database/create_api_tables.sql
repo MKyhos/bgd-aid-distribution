@@ -51,8 +51,7 @@ ALTER TABLE tbl_sblock_features
   ADD COLUMN n_bath int,
   ADD COLUMN n_latr int,
   ADD COLUMN n_tube int,
-  ADD COLUMN n_tube_high_risk int,
-  ADD COLUMN n_tube_inter_risk int,  
+  ADD COLUMN n_tube_risk int,  
   add column perc_tube_risk float8,
   ADD COLUMN pop_endangered float8, 
   ADD COLUMN n_heal int,
@@ -73,8 +72,7 @@ ALTER TABLE tbl_sblock_features
     Count(*) FILTER (WHERE gri.class = 'nutrition_serivice') AS nutr,
     Count(*) FILTER (WHERE gri.class = 'women_protection') AS wpro,
     Count(*) FILTER (WHERE gri.class = 'tubewell') AS tube,
-    Count(*) FILTER (WHERE gri.class = 'tubewell' and gri.contamination_risk_score in ('high', 'very high')) AS tube_high,
-    Count(*) FILTER (WHERE gri.class = 'tubewell' and gri.contamination_risk_score = 'intermediate') AS tube_inter  
+    Count(*) FILTER (WHERE gri.class = 'tubewell' and gri.contamination_risk_score in ('high', 'very high', 'intermediate')) AS tube_risk
   FROM geo_reach_infra AS gri
   JOIN geo_admin AS ga ON ST_Within(gri.geom, ga.geom)
   GROUP BY 1
@@ -87,9 +85,8 @@ UPDATE tbl_sblock_features AS dsf
     n_wpro = fl.wpro,
     n_tube = fl.tube,
     n_bath = fl.bath,
-    n_tube_high_risk = fl.tube_high,
-    n_tube_inter_risk = fl.tube_inter,
-    perc_tube_risk = (100 / nullif(fl.tube, 0)) * (fl.tube_high + fl.tube_inter)
+    n_tube_risk = fl.tube_risk,
+    perc_tube_risk = (100 / nullif(fl.tube, 0)) * (fl.tube_risk)
   FROM fl
   WHERE dsf.sblock_id = fl.sblock_id;
  
@@ -120,6 +117,7 @@ where tbl_sblock_features.sblock_id = percent_flooded.sblock_id;
     pop_endangered = population * perc_tube_risk / 100,
     pop_perBath = population / nullif(n_bath, 0);*/
 
+--can take ~3 minutes: 
 update tbl_sblock_features t
 set pop_perBath = vb.pop, 
     pop_perLatr = vl.pop, 
@@ -128,34 +126,34 @@ set pop_perBath = vb.pop,
     pop_perHeal = vh.pop, 
     pop_perNutr = vn.pop, 
     wmn_perWpro = vw.pop
-from (select t.sblock_id, avg(v.population) as pop          
+from (select t.sblock_id, avg(v.pop) as pop          
       from tbl_sblock_features t 
-      left join voronoi_bath v on st_intersects(t.geom, v.point)
+      left join voronoi_bath_pop v on st_intersects(t.geom, v.point)
       group by t.sblock_id) as vb,
-     (select t.sblock_id, avg(v.population) as pop
+     (select t.sblock_id, avg(v.pop) as pop
       from tbl_sblock_features t
-      left join voronoi_latr v on st_intersects(t.geom, v.point)
+      left join voronoi_latr_pop v on st_intersects(t.geom, v.point)
       group by t.sblock_id) as vl,
-     (select t.sblock_id, avg(v.population) as pop         
+     (select t.sblock_id, avg(v.pop) as pop         
       from tbl_sblock_features t 
-      left join voronoi_tube v on st_intersects(t.geom, v.point)
+      left join voronoi_tube_pop v on st_intersects(t.geom, v.point)
       group by t.sblock_id) as vt,
-     (select t.sblock_id, sum(v.population) as pop_endangered 
+     (select t.sblock_id, sum(v.pop) as pop_endangered 
       from tbl_sblock_features t
-      left join voronoi_tube v on st_intersects(t.geom, v.point)
+      left join voronoi_tube_pop v on st_intersects(t.geom, v.point)
       where contamination_risk_score in ('very high', 'high', 'intermediate')
       group by t.sblock_id) as r,
-     (select t.sblock_id, avg(v.population) as pop         
+     (select t.sblock_id, avg(v.pop) as pop         
       from tbl_sblock_features t 
-      left join voronoi_heal v on st_intersects(t.geom, v.point)
+      left join voronoi_heal_pop v on st_intersects(t.geom, v.point)
       group by t.sblock_id) as vh, 
-     (select t.sblock_id, avg(v.population) as pop         
+     (select t.sblock_id, avg(v.pop) as pop         
       from tbl_sblock_features t 
-      left join voronoi_nutr v on st_intersects(t.geom, v.point)
+      left join voronoi_nutr_pop v on st_intersects(t.geom, v.point)
       group by t.sblock_id) as vn,  
-     (select t.sblock_id, avg(v.population) as pop         
+     (select t.sblock_id, avg(v.pop) as pop         
       from tbl_sblock_features t 
-      left join voronoi_wpro v on st_intersects(t.geom, v.point)
+      left join voronoi_wpro_pop v on st_intersects(t.geom, v.point)
       group by t.sblock_id) as vw
 where t.sblock_id = vb.sblock_id
   and t.sblock_id = vl.sblock_id
@@ -168,9 +166,9 @@ where t.sblock_id = vb.sblock_id
 -- Transforming the SRID to webmercator (which is then inherited to the
 -- following tables), and add a primary key:
 ALTER TABLE tbl_sblock_features
-  ADD PRIMARY KEY (sblock_id),
+  ADD PRIMARY KEY (sblock_id)/*,
   ALTER COLUMN geom TYPE Geometry(MultiPolygon, 4326)
-    USING ST_Transform(geom, 4326);
+    USING ST_Transform(geom, 4326)*/;
 
 -- BLOCK level
 -- Here, some results from the sblock level can be reused / aggregated.
@@ -181,7 +179,7 @@ CREATE TABLE public.tbl_block_features AS (
     b.pop_perBuild, (sb.population / st_area(sb.geom)) as pop_perArea,
     b.dist_heal, b.dist_bath, b.dist_latr, b.dist_nutr, b.dist_wpro, b.dist_tube, 
     b.count_buildings, 
-    sb.n_bath, sb.n_latr, sb.n_tube, sb.n_tube_high_risk, sb.n_tube_inter_risk, sb.perc_tube_risk,
+    sb.n_bath, sb.n_latr, sb.n_tube, sb.n_tube_risk, sb.perc_tube_risk,
     sb.pop_endangered, sb.n_heal, sb.n_nutr, sb.n_wpro, 
     sb.pop_perBath, sb.pop_perLatr, sb.pop_perTube, sb.pop_perHeal, sb.pop_perNutr, sb.wmn_perWpro,    
     sb.geom
@@ -189,9 +187,8 @@ CREATE TABLE public.tbl_block_features AS (
           Sum(population)::int AS population,
           Sum(pop_female)::int AS pop_female,
           Sum(n_tube)::int AS n_tube,
-          sum(n_tube_high_risk)::int as n_tube_high_risk,
-          sum(n_tube_inter_risk)::int as n_tube_inter_risk,
-          (100 / nullif(Sum(n_tube)::int, 0)) * (sum(n_tube_high_risk)::int + sum(n_tube_inter_risk)::int) as perc_tube_risk,
+          sum(n_tube_risk)::int as n_tube_risk,
+          (100 / nullif(Sum(n_tube)::int, 0)) * (sum(n_tube_risk)::int) as perc_tube_risk,
           Sum(n_latr)::int AS n_latr,
           Sum(n_bath)::int AS n_bath,
           Sum(n_wpro)::int AS n_wpro,
@@ -240,9 +237,9 @@ from percent_flooded
 where tbl_block_features.block_id = percent_flooded.block_id;
 
 -- setting the srid correctly, adding a primary key:
-ALTER TABLE tbl_block_features
+ALTER TABLE tbl_block_features/*
   ALTER COLUMN geom TYPE Geometry(geometry, 4326)
-    USING ST_SetSRID(geom, 4326),
+    USING ST_SetSRID(geom, 4326),*/
   ADD PRIMARY KEY (block_id);
 
 
@@ -255,7 +252,7 @@ CREATE TABLE public.tbl_camp_features AS (
     b.pop_perBuild, (sb.population / st_area(sb.geom)) as pop_perArea, 
     b.dist_heal, b.dist_bath, b.dist_latr, b.dist_nutr, b.dist_wpro, b.dist_tube, 
     b.count_buildings, 
-    sb.n_bath, sb.n_latr, sb.n_tube, sb.n_tube_high_risk, sb.n_tube_inter_risk, sb.perc_tube_risk,
+    sb.n_bath, sb.n_latr, sb.n_tube, sb.n_tube_risk, sb.perc_tube_risk,
     sb.pop_endangered, sb.n_heal, sb.n_nutr, sb.n_wpro, 
     sb.pop_perBath, sb.pop_perLatr, sb.pop_perTube, sb.pop_perHeal, sb.pop_perNutr, sb.wmn_perWpro,    
     sb.geom
@@ -264,9 +261,8 @@ CREATE TABLE public.tbl_camp_features AS (
       Sum(population)::int AS population,
       Sum(pop_female)::int AS pop_female,
       Sum(n_tube)::int AS n_tube,
-      sum(n_tube_high_risk)::int as n_tube_high_risk,
-      sum(n_tube_inter_risk)::int as n_tube_inter_risk,
-      (100 / nullif(Sum(n_tube)::int, 0)) * (sum(n_tube_high_risk)::int + sum(n_tube_inter_risk)::int) as perc_tube_risk,
+      sum(n_tube_risk)::int as n_tube_risk,
+      (100 / nullif(Sum(n_tube)::int, 0)) * (sum(n_tube_risk)::int) as perc_tube_risk,
       Sum(n_latr)::int AS n_latr,
       Sum(n_bath)::int AS n_bath,
       Sum(n_wpro)::int AS n_wpro,
@@ -318,7 +314,7 @@ from percent_flooded
 where tbl_camp_features.camp_id = percent_flooded.camp_id;
 
 -- Setting the srid correctly, add primary key:
-ALTER TABLE tbl_camp_features
+ALTER TABLE tbl_camp_features/*
   ALTER COLUMN geom TYPE Geometry(geometry, 4326)
-    USING ST_SetSRID(geom, 4326),
+    USING ST_SetSRID(geom, 4326),*/
   ADD PRIMARY KEY (camp_id);

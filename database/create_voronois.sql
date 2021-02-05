@@ -1,18 +1,11 @@
 --create views that are flexible to when new data was added to the database 
 
-drop table if exists voronoi_bath; 
-drop table if exists voronoi_heal; 
-drop table if exists voronoi_latr;
-drop table if exists voronoi_nutr; 
-drop table if exists voronoi_tube; 
-drop table if exists voronoi_wpro;
-
 --1. create voronois to 
 -- * visualize distances to the nearest e.g. health station from every part of the camp
 -- * make distance calculations faster because we already know which is the nearest neighbor
 
 --bathing stuff:
-create table voronoi_bath as ( 
+create view voronoi_bath as ( 
   with outline as (    
     select st_union(geom) as geom from geo_admin
   )
@@ -26,16 +19,13 @@ create table voronoi_bath as (
   WHERE gri.class = 'sanitation' AND gri.type != 'latrine'
 );
 
-alter table voronoi_bath add column population float8; 
-update voronoi_bath v
-set population = t.pop
-from (select v.fid, v.geom, sum(b.population) as pop
-      from voronoi_bath v left join buildings b on st_intersects(v.geom, b.geom)
-      group by v.fid, v.geom) as t 
-where v.fid = t.fid;
+create view voronoi_bath_pop as (
+  select v.*, sum(b.population) as pop
+  from voronoi_bath v left join buildings b on st_intersects(v.geom, b.geom)
+  group by v.fid, v.point, v.geom);
 
 --latrines: 
-create table voronoi_latr as ( 
+create view voronoi_latr as ( 
   with outline as (    
     select st_union(geom) as geom from geo_admin
   )
@@ -49,16 +39,13 @@ create table voronoi_latr as (
   where gri.class = 'sanitation' AND gri.type != 'bathing'
 );
 
-alter table voronoi_latr add column population float8; 
-update voronoi_latr v
-set population = t.pop
-from (select v.fid, v.geom, sum(b.population) as pop
-      from voronoi_latr v left join buildings b on st_intersects(v.geom, b.geom)
-      group by v.fid, v.geom) as t 
-where v.fid = t.fid;
+create view voronoi_latr_pop as (
+  select v.*, sum(b.population) as pop
+  from voronoi_latr v left join buildings b on st_intersects(v.geom, b.geom)
+  group by v.fid, v.point, v.geom);
 
 --tubewells (incl. risk score):
-create table voronoi_tube as ( 
+create view voronoi_tube as ( 
   with outline as (    
     select st_union(geom) as geom from geo_admin
   )
@@ -72,16 +59,13 @@ create table voronoi_tube as (
   where gri.class = 'tubewell'
 );
 
-alter table voronoi_tube add column population float8; 
-update voronoi_tube v
-set population = t.pop
-from (select v.fid, v.geom, sum(b.population) as pop
-      from voronoi_tube v left join buildings b on st_intersects(v.geom, b.geom)
-      group by v.fid, v.geom) as t 
-where v.fid = t.fid;
+create view voronoi_tube_pop as (
+  select v.*, sum(b.population) as pop
+  from voronoi_tube v left join buildings b on st_intersects(v.geom, b.geom)
+  group by v.fid, v.point, v.geom, v.contamination_risk_score);
 
 --health services: 
-create table voronoi_heal as ( 
+create view voronoi_heal as ( 
   with outline as (    
     select st_union(geom) as geom from geo_admin
   )
@@ -95,16 +79,13 @@ create table voronoi_heal as (
   where gri.class = 'health_service'
 );
 
-alter table voronoi_heal add column population float8; 
-update voronoi_heal v
-set population = t.pop
-from (select v.fid, v.geom, sum(b.population) as pop
-      from voronoi_heal v left join buildings b on st_intersects(v.geom, b.geom)
-      group by v.fid, v.geom) as t 
-where v.fid = t.fid;
+create view voronoi_heal_pop as (
+  select v.*, sum(b.population) as pop
+  from voronoi_heal v left join buildings b on st_intersects(v.geom, b.geom)
+  group by v.fid, v.point, v.geom);
 
 --nutrition services: 
-create table voronoi_nutr as ( 
+create view voronoi_nutr as ( 
   with outline as (    
     select st_union(geom) as geom from geo_admin
   )
@@ -118,16 +99,13 @@ create table voronoi_nutr as (
   where gri.class = 'nutrition_service'
 ); 
 
-alter table voronoi_nutr add column population float8; 
-update voronoi_nutr v
-set population = t.pop
-from (select v.fid, v.geom, sum(b.population) as pop
-      from voronoi_nutr v left join buildings b on st_intersects(v.geom, b.geom)
-      group by v.fid, v.geom) as t 
-where v.fid = t.fid;
+create view voronoi_nutr_pop as (
+  select v.*, sum(b.population) as pop
+  from voronoi_nutr v left join buildings b on st_intersects(v.geom, b.geom)
+  group by v.fid, v.point, v.geom);
 
 --women protection services: 
-create table voronoi_wpro as ( 
+create view voronoi_wpro as ( 
   with outline as (    
     select st_union(geom) as geom from geo_admin
   )
@@ -141,10 +119,128 @@ create table voronoi_wpro as (
   where gri.class = 'women_protection'
 );
 
-alter table voronoi_wpro add column population float8; 
-update voronoi_wpro v
-set population = t.pop
-from (select v.fid, v.geom, sum(b.population) as pop
-      from voronoi_wpro v left join buildings b on st_intersects(v.geom, b.geom)
-      group by v.fid, v.geom) as t 
-where v.fid = t.fid;
+create view voronoi_wpro_pop as (
+  select v.*, sum(b.population) as pop
+  from voronoi_wpro v left join buildings b on st_intersects(v.geom, b.geom)
+  group by v.fid, v.point, v.geom);
+  
+ 
+ /*
+  For every building: calculate distance to nearest instance of
+  - bath
+  - tubewells
+  - nutrition services
+  - women protection areas
+  - latrines
+  - health facilities
+
+*/
+-- 1. Bathing stuff
+UPDATE buildings AS b1
+  SET dist_bath = v.distance
+ from (SELECT b1.id, ST_Distance(b1.geom, v.point) as distance
+       FROM   voronoi_bath v join buildings b1 on st_intersects(b1.geom, v.geom)) as v
+ where b1.id = v.id;
+ --takes: ~ 5sec. (if voronoi_bath is a table)
+ --takes: ~48sec. (if voronoi_bath is a view)
+ 
+/*UPDATE buildings AS b1
+  SET dist_bath = (
+    SELECT ST_Distance(b1.geom, gri.geom)
+    FROM geo_reach_infra AS gri
+    WHERE class = 'sanitation' AND type != 'latrine'
+    ORDER BY b1.geom <-> gri.geom
+    LIMIT 1
+  ); --takes: <1 min*/
+
+-- 2. Tubewells
+UPDATE buildings AS b1
+  SET dist_tube = v.distance
+ from (SELECT b1.id, ST_Distance(b1.geom, v.point) as distance
+       FROM   voronoi_tube v join buildings b1 on st_intersects(b1.geom, v.geom)) as v
+ where b1.id = v.id;
+ --takes: ~ 5sec. (if voronoi is a table)
+ --takes: ~38sec. (if voronoi is a view)
+
+/*UPDATE buildings AS b1
+  SET dist_tube = (
+    SELECT ST_Distance(b1.geom, gri.geom)
+    FROM geo_reach_infra AS gri
+    WHERE class = 'tubewell'
+    ORDER BY b1.geom <-> gri.geom
+    LIMIT 1
+  );*/
+
+-- 3. nutrition servicves
+UPDATE buildings AS b1
+  SET dist_nutr = v.distance
+ from (SELECT b1.id, ST_Distance(b1.geom, v.point) as distance
+       FROM   voronoi_nutr v join buildings b1 on st_intersects(b1.geom, v.geom)) as v
+ where b1.id = v.id;
+--takes: ~ 5sec. (if voronoi is table)
+--takes: ~7sec. (if voronoi is a view)
+
+/*UPDATE buildings AS b1
+  SET dist_nutr = (
+    SELECT ST_Distance(b1.geom, gri.geom)
+    FROM geo_reach_infra AS gri
+    WHERE class = 'nutrition_service'
+    ORDER BY b1.geom <-> gri.geom
+    LIMIT 1
+  );*/
+
+ -- 4. Women protection zones
+ UPDATE buildings AS b1
+  SET dist_wpro = v.distance
+ from (SELECT b1.id, ST_Distance(b1.geom, v.point) as distance
+       FROM   voronoi_wpro v join buildings b1 on st_intersects(b1.geom, v.geom)) as v
+ where b1.id = v.id;
+ --takes:   3sec. (if voronoi is a table)
+ --takes: ~11sec. (if voronoi is a view)
+
+/*UPDATE buildings AS b1
+  SET dist_wpro = (
+    SELECT ST_Distance(b1.geom, gri.geom)
+    FROM geo_reach_infra AS gri
+    WHERE class = 'women_protection'
+    ORDER BY b1.geom <-> gri.geom
+    LIMIT 1
+  );*/
+
+-- 5. Latrines 
+UPDATE buildings AS b1
+  SET dist_latr = v.distance
+ from (SELECT b1.id, ST_Distance(b1.geom, v.point) as distance
+       FROM   voronoi_latr v join buildings b1 on st_intersects(b1.geom, v.geom)) as v
+ where b1.id = v.id;
+ --takes: ~ 3sec. (if voronoi is a table)
+ --takes: ~57sec. (if voronoi is a view)
+
+/*
+UPDATE buildings AS b1
+  SET dist_latr = (
+    SELECT ST_Distance(b1.geom, gri.geom)
+    FROM geo_reach_infra AS gri
+    WHERE class = 'sanitation' AND type != 'bathing'
+    ORDER BY b1.geom <-> gri.geom
+    LIMIT 1
+  );
+*/
+
+-- 6. Health care facilities
+UPDATE buildings AS b1
+  SET dist_heal = v.distance
+ from (SELECT b1.id, ST_Distance(b1.geom, v.point) as distance
+       FROM   voronoi_heal v join buildings b1 on st_intersects(b1.geom, v.geom)) as v
+ where b1.id = v.id;
+ --takes: ~ 3sec. (if voronoi is a table)
+ --takes: ~15sec. (if voronoi is a view)
+ 
+/*UPDATE buildings AS b1
+  SET dist_heal = (
+    SELECT ST_Distance(b1.geom, gri.geom)
+    FROM geo_reach_infra AS gri
+    WHERE class = 'health_service'
+    ORDER BY b1.geom <-> gri.geom
+    LIMIT 1
+  );*/
