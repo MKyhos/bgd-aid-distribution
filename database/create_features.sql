@@ -42,8 +42,8 @@ CREATE INDEX buildings_idx
 -- Create additional column, set to 0 by default.
 ALTER TABLE buildings
   ADD COLUMN IF NOT EXISTS count_flooded int DEFAULT 0,
-  ADD COLUMN IF NOT EXISTS population numeric DEFAULT 0,
-  ADD COLUMN IF NOT EXISTS pop_female numeric DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS n_population numeric DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS n_pop_female numeric DEFAULT 0,
   ADD COLUMN IF NOT EXISTS dist_bath numeric, -- Distance to bathing stuff
   ADD COLUMN IF NOT EXISTS dist_latr numeric, -- Distance to latrines
   ADD COLUMN IF NOT EXISTS dist_tube numeric, -- Distance to tubewells
@@ -83,7 +83,7 @@ WITH
     GROUP BY 1
   )
 UPDATE buildings AS b1
-  SET population = (
+  SET n_population = (
       (0.5 * (d.pop_total / ci.camp_b_number)) +           --distribute half of the population data per building in general
       ((d.pop_total / 2) * (b1.area_sqm / ci.camp_b_area)) --distribute the other half depending on the building size
   )
@@ -104,7 +104,7 @@ WITH
     from dta_block d
   )
 UPDATE buildings AS b1
-  SET pop_female = (
+  SET n_pop_female = (
       (0.5 * (d.pop_female / ci.camp_b_number)) +           --distribute half of the population data per building in general
       ((d.pop_female / 2) * (b1.area_sqm / ci.camp_b_area)) --distribute the other half depending on the building size
   )
