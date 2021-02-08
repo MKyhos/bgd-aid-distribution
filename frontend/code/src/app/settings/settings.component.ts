@@ -116,10 +116,17 @@ export class SettingsComponent {
       adminLevel.calculation = 'dist_'
       this.adminForm.controls.calculation.disable(); 
     }
-    else{
+    else if (this.adminForm.controls.calculation._pendingValue){
+      console.log(adminLevel.calculation);
+      
       this.adminForm.controls.calculation.enable();
       adminLevel.calculation = this.adminForm.controls.calculation._pendingValue;
-    };
+    }
+    else{
+      adminLevel.calculation = adminLevel.calculation;
+    }
+    
+    
     this.adminLevelAdded.emit(adminLevel);
     
     //console.log(adminLevel);
