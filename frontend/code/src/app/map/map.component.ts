@@ -250,7 +250,8 @@ export class MapComponent implements OnInit {
       if (!max) {
         max = 1;
       }
-
+      console.log(max);
+      
       var div = L.DomUtil.create('div', 'legend'),
         grades = [0, Math.round(max / 8),
           Math.round(max / (8 / 2)),
