@@ -116,7 +116,7 @@ export class SettingsComponent {
       adminLevel.calculation = 'dist_'
       this.adminForm.controls.calculation.disable(); 
     }
-    else if (this.adminForm.controls.calculation._pendingValue){
+    else if (this.adminForm.controls.calculation._pendingValue!== 'undefined'){
       console.log(adminLevel.calculation);
       
       this.adminForm.controls.calculation.enable();

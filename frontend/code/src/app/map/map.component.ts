@@ -92,6 +92,8 @@ export class MapComponent implements OnInit {
     this.map.addLayer(this.healthLocationsLayer);
   }
 
+
+ 
   /**
    * Often divs and other HTML element are not available in the constructor. Thus we use onInit()
    */
@@ -172,6 +174,9 @@ export class MapComponent implements OnInit {
  */
   public addGeoJSON(geojson: FeatureCollection, adminLevel: string, unitInterest: string): void {
     // find maximum numbars value in array
+
+    
+
 
     this.unitInterest = unitInterest;
     this.adminLevel = adminLevel;
@@ -349,15 +354,30 @@ export class MapComponent implements OnInit {
     };
 
     // create one geoJSON layer and add it to the map
+    
+    
+    
+    
+    this.amenitiesLayer.removeFrom(this.map);
+    
+    
     geoJSON = L.geoJSON(geojson, {
       onEachFeature,
       style
     });
-    geoJSON.addTo(this.map);
+
+    this.amenitiesLayer = geoJSON
+
+    this.amenitiesLayer.addTo(this.map);
+    
+
+    
+    console.log(this.map);
+    
   }
   some(): void {
     //this.pubsAdded.emit(true);
-    console.log('hi');
+    console.log(this.map);
 
   }
 }
