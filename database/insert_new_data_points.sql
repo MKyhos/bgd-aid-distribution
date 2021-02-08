@@ -20,7 +20,7 @@ values row (select max(fid)+1, {1}, {2}, {3}, st_setsrid(st_point({4}, {5}), 432
 --update buildings: takes ~30sec.
  UPDATE buildings AS b1
   SET dist_bath = v.distance
- from (SELECT b1.id, ST_Distance(b1.geom, v.point) as distance
+ from (SELECT b1.id, ST_Distance(st_transform(b1.geom, 3857), st_transform(v.point,3857)) as distance
        FROM   voronoi_bath v join buildings b1 on st_intersects(b1.geom, v.geom)) as v
  where b1.id = v.id;
 
@@ -36,7 +36,7 @@ from (select sblock_id, avg(dist_bath) as dist
       FROM geo_reach_infra AS gri JOIN geo_admin AS ga ON ST_Within(gri.geom, ga.geom)
       where gri.class = 'sanitation' and gri.class != 'latrine'
       group by 1) as n,
-     (select t.sblock_id, avg(v.pop) as pop         
+     (select t.sblock_id, avg(v.pop_perbath) as pop         
       from tbl_sblock_features t 
       left join voronoi_bath_pop v on st_intersects(t.geom, v.point)
       group by 1) as v
@@ -63,7 +63,7 @@ where f.camp_id = t.camp_id
 --update buildings: takes ~40sec.
  UPDATE buildings AS b1
   SET dist_latr = v.distance
- from (SELECT b1.id, ST_Distance(b1.geom, v.point) as distance
+ from (SELECT b1.id, ST_Distance(st_transform(b1.geom, 3857), st_transform(v.point,3857)) as distance
        FROM   voronoi_latr v join buildings b1 on st_intersects(b1.geom, v.geom)) as v
  where b1.id = v.id;
 
@@ -79,7 +79,7 @@ from (select sblock_id, avg(dist_latr) as dist
       FROM geo_reach_infra AS gri JOIN geo_admin AS ga ON ST_Within(gri.geom, ga.geom)
       where gri.class = 'sanitation' and gri.class != 'bathing'
       group by 1) as n,
-     (select t.sblock_id, avg(v.pop) as pop         
+     (select t.sblock_id, avg(v.pop_perbath) as pop         
       from tbl_sblock_features t 
       left join voronoi_latr_pop v on st_intersects(t.geom, v.point)
       group by 1) as v
@@ -106,7 +106,7 @@ where f.camp_id = t.camp_id
 --update buildings: takes ~30sec.
  UPDATE buildings AS b1
   SET dist_tube = v.distance
- from (SELECT b1.id, ST_Distance(b1.geom, v.point) as distance
+ from (SELECT b1.id, ST_Distance(st_transform(b1.geom, 3857), st_transform(v.point,3857)) as distance
        FROM   voronoi_tube v join buildings b1 on st_intersects(b1.geom, v.geom)) as v
  where b1.id = v.id;
 
@@ -127,8 +127,8 @@ from (select sblock_id, avg(dist_tube) as dist
       FROM geo_reach_infra AS gri JOIN geo_admin AS ga ON ST_Within(gri.geom, ga.geom)
       where gri.class = 'tubewell'
       group by 1) as n,
-      (select t.sblock_id, avg(v.pop) as pop,
-      sum(v.pop) filter (where v.contamination_risk_score in ('high', 'very high', 'intermediate')) as pop_endangered
+      (select t.sblock_id, avg(v.pop_pertube) as pop,
+      sum(v.pop_pertube) filter (where v.contamination_risk_score in ('high', 'very high', 'intermediate')) as pop_endangered
       from tbl_sblock_features t 
       left join voronoi_tube_pop v on st_intersects(t.geom, v.point)
       group by 1) as v
@@ -161,7 +161,7 @@ where f.camp_id = t.camp_id
 --update buildings: takes ~7sec.
  UPDATE buildings AS b1
   SET dist_heal = v.distance
- from (SELECT b1.id, ST_Distance(b1.geom, v.point) as distance
+ from (SELECT b1.id, ST_Distance(st_transform(b1.geom, 3857), st_transform(v.point,3857)) as distance
        FROM   voronoi_heal v join buildings b1 on st_intersects(b1.geom, v.geom)) as v
  where b1.id = v.id;
 
@@ -177,7 +177,7 @@ from (select sblock_id, avg(dist_heal) as dist
       FROM geo_reach_infra AS gri JOIN geo_admin AS ga ON ST_Within(gri.geom, ga.geom)
       where gri.class = 'health_service'
       group by 1) as n,
-     (select t.sblock_id, avg(v.pop) as pop         
+     (select t.sblock_id, avg(v.pop_perheal) as pop         
       from tbl_sblock_features t 
       left join voronoi_heal_pop v on st_intersects(t.geom, v.point)
       group by 1) as v
@@ -204,7 +204,7 @@ where f.camp_id = t.camp_id
 --update buildings: takes ~7sec.
  UPDATE buildings AS b1
   SET dist_nutr = v.distance
- from (SELECT b1.id, ST_Distance(b1.geom, v.point) as distance
+ from (SELECT b1.id, ST_Distance(st_transform(b1.geom, 3857), st_transform(v.point,3857)) as distance
        FROM   voronoi_nutr v join buildings b1 on st_intersects(b1.geom, v.geom)) as v
  where b1.id = v.id;
 
@@ -220,7 +220,7 @@ from (select sblock_id, avg(dist_nutr) as dist
       FROM geo_reach_infra AS gri JOIN geo_admin AS ga ON ST_Within(gri.geom, ga.geom)
       where gri.class = 'nutrition_service'
       group by 1) as n,
-     (select t.sblock_id, avg(v.pop) as pop         
+     (select t.sblock_id, avg(v.pop_pernutr) as pop         
       from tbl_sblock_features t 
       left join voronoi_nutr_pop v on st_intersects(t.geom, v.point)
       group by 1) as v
@@ -247,7 +247,7 @@ where f.camp_id = t.camp_id
 --update buildings: takes ~10sec.
  UPDATE buildings AS b1
   SET dist_wpro = v.distance
- from (SELECT b1.id, ST_Distance(b1.geom, v.point) as distance
+ from (SELECT b1.id, ST_Distance(st_transform(b1.geom, 3857), st_transform(v.point,3857)) as distance
        FROM   voronoi_wpro v join buildings b1 on st_intersects(b1.geom, v.geom)) as v
  where b1.id = v.id;
 
@@ -255,7 +255,7 @@ where f.camp_id = t.camp_id
 update tbl_sblock_features f
 set dist_wpro = b.dist,
     n_wpro = n.count,
-    wmn_perWpro = v.pop
+    pop_perwpro = v.pop
 from --subquery for the distance calculation: 
      (select sblock_id, avg(dist_wpro) as dist
       from buildings 
@@ -266,7 +266,7 @@ from --subquery for the distance calculation:
       where gri.class = 'women_protection'
       group by 1) as n,
      --subquery for the pop per amenity calculation: 
-     (select t.sblock_id, avg(v.pop) as pop         
+     (select t.sblock_id, avg(v.pop_perwpro) as pop         
       from tbl_sblock_features t 
       left join voronoi_wpro_pop v on st_intersects(t.geom, v.point)
       group by 1) as v
@@ -275,14 +275,14 @@ where f.sblock_id = b.sblock_id
   and f.sblock_id = v.sblock_id
   
 update tbl_block_features f
-set dist_wpro = t.dist, n_wpro = t.count, wmn_perWpro = t.pop
+set dist_wpro = t.dist, n_wpro = t.count, pop_perwpro = t.pop
 from (select block_id, avg(dist_wpro) as dist, sum(n_wpro) as count, avg(population) as pop         
       from tbl_sblock_features t 
       group by 1) as t
 where f.block_id = t.block_id
 
 update tbl_camp_features f
-set dist_wpro = t.dist, n_wpro = t.count, wmn_perWpro = t.pop
+set dist_wpro = t.dist, n_wpro = t.count, pop_perwpro = t.pop
 from (select camp_id, avg(dist_wpro) as dist, sum(n_wpro) as count, avg(population) as pop         
       from tbl_block_features t 
       group by 1) as t

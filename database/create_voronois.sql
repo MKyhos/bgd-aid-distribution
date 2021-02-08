@@ -20,7 +20,7 @@ create view voronoi_bath as (
 );
 
 create view voronoi_bath_pop as (
-  select v.*, sum(b.population) as pop
+  select v.*, sum(b.n_population) as pop_perBath
   from voronoi_bath v left join buildings b on st_intersects(v.geom, b.geom)
   group by v.fid, v.point, v.geom);
 
@@ -40,7 +40,7 @@ create view voronoi_latr as (
 );
 
 create view voronoi_latr_pop as (
-  select v.*, sum(b.population) as pop
+  select v.*, sum(b.n_population) as pop_perLatr
   from voronoi_latr v left join buildings b on st_intersects(v.geom, b.geom)
   group by v.fid, v.point, v.geom);
 
@@ -60,7 +60,7 @@ create view voronoi_tube as (
 );
 
 create view voronoi_tube_pop as (
-  select v.*, sum(b.population) as pop
+  select v.*, sum(b.n_population) as pop_perTube
   from voronoi_tube v left join buildings b on st_intersects(v.geom, b.geom)
   group by v.fid, v.point, v.geom, v.contamination_risk_score);
 
@@ -80,7 +80,7 @@ create view voronoi_heal as (
 );
 
 create view voronoi_heal_pop as (
-  select v.*, sum(b.population) as pop
+  select v.*, sum(b.n_population) as pop_perHeal
   from voronoi_heal v left join buildings b on st_intersects(v.geom, b.geom)
   group by v.fid, v.point, v.geom);
 
@@ -100,7 +100,7 @@ create view voronoi_nutr as (
 ); 
 
 create view voronoi_nutr_pop as (
-  select v.*, sum(b.population) as pop
+  select v.*, sum(b.n_population) as pop_perNutr
   from voronoi_nutr v left join buildings b on st_intersects(v.geom, b.geom)
   group by v.fid, v.point, v.geom);
 
@@ -120,7 +120,7 @@ create view voronoi_wpro as (
 );
 
 create view voronoi_wpro_pop as (
-  select v.*, sum(b.population) as pop
+  select v.*, sum(b.n_pop_female) as pop_perWpro
   from voronoi_wpro v left join buildings b on st_intersects(v.geom, b.geom)
   group by v.fid, v.point, v.geom);
   
@@ -138,7 +138,7 @@ create view voronoi_wpro_pop as (
 -- 1. Bathing stuff
 UPDATE buildings AS b1
   SET dist_bath = v.distance
- from (SELECT b1.id, ST_Distance(b1.geom, v.point) as distance
+ from (SELECT b1.id, ST_Distance(st_transform(b1.geom, 3857), st_transform(v.point, 3857)) as distance
        FROM   voronoi_bath v join buildings b1 on st_intersects(b1.geom, v.geom)) as v
  where b1.id = v.id;
  --takes: ~ 5sec. (if voronoi_bath is a table)
@@ -156,7 +156,7 @@ UPDATE buildings AS b1
 -- 2. Tubewells
 UPDATE buildings AS b1
   SET dist_tube = v.distance
- from (SELECT b1.id, ST_Distance(b1.geom, v.point) as distance
+ from (SELECT b1.id, ST_Distance(st_transform(b1.geom, 3857), st_transform(v.point, 3857)) as distance
        FROM   voronoi_tube v join buildings b1 on st_intersects(b1.geom, v.geom)) as v
  where b1.id = v.id;
  --takes: ~ 5sec. (if voronoi is a table)
@@ -174,7 +174,7 @@ UPDATE buildings AS b1
 -- 3. nutrition servicves
 UPDATE buildings AS b1
   SET dist_nutr = v.distance
- from (SELECT b1.id, ST_Distance(b1.geom, v.point) as distance
+ from (SELECT b1.id, ST_Distance(st_transform(b1.geom, 3857), st_transform(v.point, 3857)) as distance
        FROM   voronoi_nutr v join buildings b1 on st_intersects(b1.geom, v.geom)) as v
  where b1.id = v.id;
 --takes: ~ 5sec. (if voronoi is table)
@@ -192,7 +192,7 @@ UPDATE buildings AS b1
  -- 4. Women protection zones
  UPDATE buildings AS b1
   SET dist_wpro = v.distance
- from (SELECT b1.id, ST_Distance(b1.geom, v.point) as distance
+ from (SELECT b1.id, ST_Distance(st_transform(b1.geom, 3857), st_transform(v.point, 3857)) as distance
        FROM   voronoi_wpro v join buildings b1 on st_intersects(b1.geom, v.geom)) as v
  where b1.id = v.id;
  --takes:   3sec. (if voronoi is a table)
@@ -210,7 +210,7 @@ UPDATE buildings AS b1
 -- 5. Latrines 
 UPDATE buildings AS b1
   SET dist_latr = v.distance
- from (SELECT b1.id, ST_Distance(b1.geom, v.point) as distance
+ from (SELECT b1.id, ST_Distance(st_transform(b1.geom, 3857), st_transform(v.point, 3857)) as distance
        FROM   voronoi_latr v join buildings b1 on st_intersects(b1.geom, v.geom)) as v
  where b1.id = v.id;
  --takes: ~ 3sec. (if voronoi is a table)
@@ -230,7 +230,7 @@ UPDATE buildings AS b1
 -- 6. Health care facilities
 UPDATE buildings AS b1
   SET dist_heal = v.distance
- from (SELECT b1.id, ST_Distance(b1.geom, v.point) as distance
+ from (SELECT b1.id, ST_Distance(st_transform(b1.geom, 3857), st_transform(v.point, 3857)) as distance
        FROM   voronoi_heal v join buildings b1 on st_intersects(b1.geom, v.geom)) as v
  where b1.id = v.id;
  --takes: ~ 3sec. (if voronoi is a table)
