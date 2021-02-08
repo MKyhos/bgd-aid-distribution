@@ -28,6 +28,7 @@ export class MapComponent implements OnInit {
   @ViewChild('overview') child!:ElementRef<HTMLButtonElement>;
   @ViewChild('points') child2!:ElementRef<HTMLButtonElement>;
   @ViewChild('overviewCamps') child3!:ElementRef<HTMLButtonElement>;
+  @ViewChild('pointEntry') formChild!:ElementRef<HTMLButtonElement>;
   //private ctrl: any;
 
 
@@ -158,6 +159,7 @@ export class MapComponent implements OnInit {
     this.clickr=false;
     this.map.setView([21.05, 92.29], 11)
     this.map.removeLayer(this.healthLocationsLayer);
+    this.formChild.nativeElement.style.visibility = 'hidden';
     
     
 
@@ -319,6 +321,21 @@ export class MapComponent implements OnInit {
         this.clickr = true;
         this.map.fitBounds(e.target.getBounds());
         this.layer = e.target;
+
+
+        var popup = L.popup();
+
+        const onMapClick = (e:any)=>{
+          popup
+          .setLatLng(e.latlng)
+          .setContent("Copy and Paste into the Form \n" + e.latlng.toString())
+          .openOn(this.map);
+        }
+
+        this.map.on('click', onMapClick);
+        this.formChild.nativeElement.style.visibility = 'unset';
+
+
 
         this.layer.setStyle({
           weight: 3,
