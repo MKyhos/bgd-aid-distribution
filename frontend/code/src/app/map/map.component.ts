@@ -27,6 +27,7 @@ export class MapComponent implements OnInit {
   private unitInterest: any;
   @ViewChild('overview') child!:ElementRef<HTMLButtonElement>;
   @ViewChild('points') child2!:ElementRef<HTMLButtonElement>;
+  @ViewChild('overviewCamps') child3!:ElementRef<HTMLButtonElement>;
   //private ctrl: any;
 
 
@@ -162,6 +163,20 @@ export class MapComponent implements OnInit {
 
   }
 
+  flyer(){
+    this.map.setView([21.1978, 92.15], 14);
+    this.child.nativeElement.style.visibility = 'unset';
+  }
+
+  flyerCenter(){
+    this.map.setView([21.12, 92.15], 13);
+    this.child.nativeElement.style.visibility = 'unset';
+  }
+
+  flyerSouth(){
+    this.map.setView([20.95, 92.25], 13);
+    this.child.nativeElement.style.visibility = 'unset';
+  }
   showLocations(info= { adminLevel: this.adminLevel, unitName: this.layer.feature.properties.name, unitInterest: this.unitInterest}): void{
     this.locationAdded.emit(info);
     
