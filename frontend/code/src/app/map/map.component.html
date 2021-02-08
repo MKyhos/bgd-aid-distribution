@@ -1,4 +1,8 @@
 <div id="map" style="z-index:1; position:relative"></div>
-<button #overview (click)="restoreOverview()" style="position: absolute; right: 10px;top: 120px;z-index: 2; visibility: hidden;">Back to Overview</button>
-<button #points (click)="showLocations()" style="position: absolute; right: 10px;top: 150px;z-index: 2; visibility: hidden;">Show unit locations</button>
+<button #overview (click)="restoreOverview()" style="position: absolute; right: 10px;top: 150px;z-index: 2; visibility: hidden;">Back to Overview</button>
+<button #points (click)="showLocations()" style="position: absolute; right: 10px;top: 200px;z-index: 2; visibility: hidden;">Show unit locations</button>
+<button (click)="restoreOverview()" style="position: absolute; left: 10px;top: 200px;z-index: 2;">Show all camps</button>
+<button (click)="flyer()" style="position: absolute; left: 10px;top: 240px;z-index: 2;">Focus on Kutupalong Camp</button>
+<button (click)="flyerCenter()" style="position: absolute; left: 10px;top: 270px;z-index: 2;">Focus on Center Camps</button>
+<button (click)="flyerSouth()" style="position: absolute; left: 10px;top: 300px;z-index: 2;">Focus on Southern Camp</button>
 

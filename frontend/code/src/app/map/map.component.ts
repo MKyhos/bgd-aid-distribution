@@ -27,6 +27,7 @@ export class MapComponent implements OnInit {
   private unitInterest: any;
   @ViewChild('overview') child!:ElementRef<HTMLButtonElement>;
   @ViewChild('points') child2!:ElementRef<HTMLButtonElement>;
+  @ViewChild('overviewCamps') child3!:ElementRef<HTMLButtonElement>;
   //private ctrl: any;
 
 
@@ -92,6 +93,8 @@ export class MapComponent implements OnInit {
     this.map.addLayer(this.healthLocationsLayer);
   }
 
+
+ 
   /**
    * Often divs and other HTML element are not available in the constructor. Thus we use onInit()
    */
@@ -160,6 +163,20 @@ export class MapComponent implements OnInit {
 
   }
 
+  flyer(){
+    this.map.setView([21.1978, 92.15], 14);
+    this.child.nativeElement.style.visibility = 'unset';
+  }
+
+  flyerCenter(){
+    this.map.setView([21.12, 92.15], 13);
+    this.child.nativeElement.style.visibility = 'unset';
+  }
+
+  flyerSouth(){
+    this.map.setView([20.95, 92.25], 13);
+    this.child.nativeElement.style.visibility = 'unset';
+  }
   showLocations(info= { adminLevel: this.adminLevel, unitName: this.layer.feature.properties.name, unitInterest: this.unitInterest}): void{
     this.locationAdded.emit(info);
     
@@ -172,6 +189,9 @@ export class MapComponent implements OnInit {
  */
   public addGeoJSON(geojson: FeatureCollection, adminLevel: string, unitInterest: string): void {
     // find maximum numbars value in array
+
+    
+
 
     this.unitInterest = unitInterest;
     this.adminLevel = adminLevel;
@@ -250,7 +270,8 @@ export class MapComponent implements OnInit {
       if (!max) {
         max = 1;
       }
-
+      console.log(max);
+      
       var div = L.DomUtil.create('div', 'legend'),
         grades = [0, Math.round(max / 8),
           Math.round(max / (8 / 2)),
@@ -348,15 +369,30 @@ export class MapComponent implements OnInit {
     };
 
     // create one geoJSON layer and add it to the map
+    
+    
+    
+    
+    this.amenitiesLayer.removeFrom(this.map);
+    
+    
     geoJSON = L.geoJSON(geojson, {
       onEachFeature,
       style
     });
-    geoJSON.addTo(this.map);
+
+    this.amenitiesLayer = geoJSON
+
+    this.amenitiesLayer.addTo(this.map);
+    
+
+    
+    console.log(this.map);
+    
   }
   some(): void {
     //this.pubsAdded.emit(true);
-    console.log('hi');
+    console.log(this.map);
 
   }
 }

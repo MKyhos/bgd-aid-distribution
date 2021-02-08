@@ -32,6 +32,8 @@ export class DataService {
     { name: string; latitude: number; longitude: number }[]
     > {
       const url = 'http://localhost:5000/pointpoly';
+      console.log(adminLevel, unitName, unitInterest);
+      
     
     
     

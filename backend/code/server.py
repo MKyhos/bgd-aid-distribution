@@ -50,6 +50,7 @@ def regions():
         "type": "FeatureCollection", "features": geojsons
     }), 200
 
+# Dropdowns
 @app.route('/adminLevel', methods=['GET', "POST"])
 def adminLevel():
     adminLevel = request.get_json()["adminLevel"]
@@ -100,30 +101,35 @@ select "facility type" as name, st_y(loc) as latitude, st_x(loc) as longitude fr
     return jsonify([{'name': r[0], 'latitude': r[1], 'longitude': r[2]} for r in results]), 200
 
 
+# Points in Polygons
 @app.route('/pointpoly', methods=["GET", "POST"])
 def pointpoly():
     adminLevel = request.get_json()["adminLevel"]
-    unitName = request.get_json()["unitName"]
+    points = request.get_json()["unitName"]
     unitInterest = request.get_json()["unitInterest"]
+
+ #   if unitInterest == 'tube':
+  #      pointUnit = 'tubewell'
+   # elif unitInterest == 'latr':
+    #    pointUnit = 'latrine'
+    #elif unitInterest == 'bath':
+      #  pointUnit == 'bathroom'
+    #else:
+     #   pointUnit = unitInterest
     
-    if unitInterest == 'tube':
-        points = 'tubewell'
-        addinfo = 'contamination_risk_score'
-    elif unitInterest == 'latrine':
-        points = 'latrines'
-        addinfo = 'type_of_structure'
+
 
     query = """
 with region as 
-    (select st_geomfromtext(ci.geometry, 4326)as geo, id, individuals, families 
+    (select ci.geom as geo
     from {0} ci 
-    where ci.id = '{1}'),
+    where {3} = '{2}'),
 locations as 
-    (select st_geomfromtext(st_astext(st_makepoint("gps longitude"::float, "gps latitude"::float)), 4326)as loc, {3}
-    from {2} t)
-    select {3} as name, st_y(loc) as latitude, st_x(loc) as longitude 
+    (select geom as geom, sanitary_inspection_score
+    from geo_reach_infra t where t."type" like '{1}' or t."class" like '{1}') 
+select sanitary_inspection_score as name, st_y(geom) as latitude, st_x(geom) as longitude 
     from locations l 
-    join region r on ST_Within(l.loc, r.geo)""".format(adminLevel + "_info", unitName, points, addinfo)
+    join region r on ST_Within(l.geom, r.geo)""".format("tbl_"+adminLevel+"_features" ,"%"+unitInterest+"%", points, adminLevel+"_id")
     with psycopg2.connect(host="database", port=5432, dbname="gis_db", user="gis_user", password="gis_pass") as conn:
         with conn.cursor() as cursor:
             cursor.execute(query)
