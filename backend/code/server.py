@@ -136,3 +136,22 @@ select sanitary_inspection_score as name, st_y(geom) as latitude, st_x(geom) as 
             results = cursor.fetchall()
 
     return jsonify([{'name': r[0], 'latitude': r[1], 'longitude': r[2]} for r in results]), 200
+
+
+@app.route('/addPointInfo', methods=["POST"])
+def addPointInfo():
+    latitude = request.get_json()["latitude"]
+    longitude = request.get_json()["longitude"]
+    amenity = request.get_json()["amenity"]
+    sanitationScore = request.get_json()["sanitationScore"]
+
+    query = """ insert into 
+    geo_reach_infra("class", "type", sanitary_inspection_score, geom)
+    values('someclass','somerealtype','somescore', st_setsrid(st_makepoint(90,20), 4326)) """
+
+    with psycopg2.connect(host="database", port=5432, dbname="gis_db", user="gis_user", password="gis_pass") as conn:
+        with conn.cursor() as cursor:
+            cursor.execute(query)
+            
+
+    return jsonify([{'name': r[0], 'latitude': r[1], 'longitude': r[2]} for r in results]), 200

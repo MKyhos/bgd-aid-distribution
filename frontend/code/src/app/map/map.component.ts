@@ -1,5 +1,5 @@
 import { Component, Input, Output,EventEmitter, OnInit, ViewEncapsulation, ViewChild, ElementRef} from '@angular/core';
-
+import { FormBuilder, FormGroup,  Validators } from '@angular/forms';
 import { Feature, FeatureCollection, Geometry, MultiPolygon } from 'geojson';
 import * as L from 'leaflet';
 import * as d3 from 'd3';
@@ -25,6 +25,8 @@ export class MapComponent implements OnInit {
   private clickr: boolean = false;
   private adminLevel: any;
   private unitInterest: any;
+  private formlat: any;
+  private formlng: any;
   @ViewChild('overview') child!:ElementRef<HTMLButtonElement>;
   @ViewChild('points') child2!:ElementRef<HTMLButtonElement>;
   @ViewChild('overviewCamps') child3!:ElementRef<HTMLButtonElement>;
@@ -63,6 +65,14 @@ export class MapComponent implements OnInit {
     unitInterest: string;
   }> = new EventEmitter<{ adminLevel: string; unitName: string; unitInterest: string}>();
 
+  @Output()
+  pointInfoAdded: EventEmitter<{
+    latitude: number;
+    longitude: number;
+    amenity: string;
+    sanitationScore: number;
+  }> = new EventEmitter<{ latitude: number; longitude: number; amenity: string; sanitationScore: number; }>();
+
   @Input()
   set healthLocations(
     value: { name: string; latitude: number; longitude: number }[]
@@ -70,6 +80,19 @@ export class MapComponent implements OnInit {
     this._healthLocations = value;
     this.updateHealthLocationsLayer();
   }
+  
+
+  pointForm: FormGroup;
+
+  constructor(fb: FormBuilder) {
+    this.pointForm = fb.group({
+      latitude: [],
+      longitude: [],
+      amenity: fb.control('pleasefindemeherre'),
+      sanitationScore: fb.control(1)
+    });
+  }
+
 
   private updateHealthLocationsLayer() {
     if (!this.map) {
@@ -184,7 +207,11 @@ export class MapComponent implements OnInit {
     
   }
 
-  
+  onPtSubmit(pointInfo: {latitude: number; longitude: number; amenity: string; sanitationScore: number}): void {
+    this.pointInfoAdded.emit(pointInfo);
+    //console.log(pointInfo);
+  }
+
   /**
  * Add a GeoJSON FeatureCollection to this map
  * @param latitude
@@ -328,19 +355,20 @@ export class MapComponent implements OnInit {
         const onMapClick = (e:any)=>{
           popup
           .setLatLng(e.latlng)
-          .setContent("Copy and Paste into the Form \n" + e.latlng.toString())
+          .setContent("Add a " +this.unitInterest+ " here at \n" + e.latlng.toString() + " by submitting the form below.") 
           .openOn(this.map);
-          console.log(e.latlng);
-          console.log(this.formChild);
-          this.formChild.nativeElement[0].defaultValue = e.latlng.lat
-          this.formChild.nativeElement[1].defaultValue = e.latlng.lng
-          this.formChild.nativeElement[2].defaultValue = this.unitInterest
+          this.pointForm.value.latitude = e.latlng.lat
+          this.pointForm.value.longitude = e.latlng.lng
+          this.pointForm.value.amenity = this.unitInterest
+          //console.log(this.unitInterest);
+          
+          this.formChild.nativeElement.style.visibility = 'unset';
           
           
         }
 
         this.map.on('click', onMapClick);
-        this.formChild.nativeElement.style.visibility = 'unset';
+        
 
 
 

@@ -87,4 +87,9 @@ export class AppComponent {
 
   }
   )};
+
+  onPointInfoAdded($event: {latitude: number; longitude: number; amenity: string; sanitationScore: number}){
+    this.dataservice.addPointInfo($event.latitude, $event.longitude, $event.amenity, $event.sanitationScore);
+    
+  }
 }

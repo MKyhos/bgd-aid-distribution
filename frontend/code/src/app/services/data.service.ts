@@ -79,4 +79,15 @@ export class DataService {
 
 }
 
+public addPointInfo(latitude: number, longitude: number, amenity: string, sanitationScore: number){
+  const url = 'http://localhost:5000/addPointInfo';
+
+  console.log(latitude, longitude, amenity, sanitationScore);
+  
+
+  return this.http.post<
+    { name: string; latitude: number; longitude: number }[]
+  >(url, {latitude, longitude, amenity, sanitationScore}, httpOptions);
+}
+
 }
