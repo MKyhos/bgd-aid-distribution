@@ -209,6 +209,7 @@ export class MapComponent implements OnInit {
 
   onPtSubmit(pointInfo: {latitude: number; longitude: number; amenity: string; sanitationScore: number}): void {
     this.pointInfoAdded.emit(pointInfo);
+    this.showLocations({ adminLevel: this.adminLevel, unitName: this.layer.feature.properties.name, unitInterest: this.unitInterest})
     //console.log(pointInfo);
   }
 
@@ -376,7 +377,7 @@ export class MapComponent implements OnInit {
           weight: 3,
           color: '#666',
           dashArray: '',
-          fillOpacity: 0.9
+          fillOpacity: 0.3
         });
         this.enableButton();
       }
