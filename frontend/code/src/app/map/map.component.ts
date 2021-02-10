@@ -330,6 +330,13 @@ export class MapComponent implements OnInit {
           .setLatLng(e.latlng)
           .setContent("Copy and Paste into the Form \n" + e.latlng.toString())
           .openOn(this.map);
+          console.log(e.latlng);
+          console.log(this.formChild);
+          this.formChild.nativeElement[0].defaultValue = e.latlng.lat
+          this.formChild.nativeElement[1].defaultValue = e.latlng.lng
+          this.formChild.nativeElement[2].defaultValue = this.unitInterest
+          
+          
         }
 
         this.map.on('click', onMapClick);
