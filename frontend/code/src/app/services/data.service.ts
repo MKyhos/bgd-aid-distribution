@@ -85,9 +85,21 @@ public addPointInfo(latitude: number, longitude: number, amenity: string, sanita
   console.log(latitude, longitude, amenity, sanitationScore);
   
 
-  return this.http.post<
-    { name: string; latitude: number; longitude: number }[]
-  >(url, {latitude, longitude, amenity, sanitationScore}, httpOptions);
+  const result: Observable<string> = this.http.post< string>(url, {latitude, longitude, amenity, sanitationScore}, httpOptions);
+  result.toPromise().then((r: string) => console.log(r));
 }
+
+
+
+public addPointMetaInfo(latitude: number, longitude: number, amenity: string, sanitationScore: number){
+  const url = 'http://localhost:5000/addPointMetaInfo';
+
+  console.log(latitude, longitude, amenity, sanitationScore);
+  
+
+  const result: Observable<string> = this.http.post< string>(url, {latitude, longitude, amenity, sanitationScore}, httpOptions);
+  result.toPromise().then((r: string) => console.log(r));
+}
+
 
 }
