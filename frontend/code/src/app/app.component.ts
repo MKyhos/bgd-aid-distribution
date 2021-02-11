@@ -90,8 +90,11 @@ export class AppComponent {
   }
   )};
 
-  onPointInfoAdded($event: {latitude: number; longitude: number; amenity: string; sanitationScore: number}){
+  onPointInfoAdded($event: {latitude: number; longitude: number; amenity: string; sanitationScore: number; adminLevel: string, unitName: string, unitInterest: string}){
     this.dataservice.addPointInfo($event.latitude, $event.longitude, $event.amenity, $event.sanitationScore);
-    
+    this.dataservice.addPointMetaInfo($event.latitude, $event.longitude, $event.amenity, $event.sanitationScore);
+    this.dataservice.getHealthLocation($event.adminLevel, $event.unitName, $event.unitInterest).subscribe((healthLocation) => {
+      this.healthLocation=healthLocation;
+    });
   }
 }

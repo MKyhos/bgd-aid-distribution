@@ -1,6 +1,6 @@
 <div id="map" style="z-index:1; position:relative"></div>
 <button #overview (click)="restoreOverview()" style="position: absolute; right: 10px;top: 150px;z-index: 2; visibility: hidden;">Back to Overview</button>
-<button #points (click)="showLocations()" style="position: absolute; right: 10px;top: 200px;z-index: 2; visibility: hidden;">Show unit locations</button>
+<button #points (click)="showLocations()" style="position: absolute; right: 10px;top: 180px;z-index: 2; visibility: hidden;">Show unit locations</button>
 <button (click)="restoreOverview()" style="position: absolute; left: 10px;top: 200px;z-index: 2;">Show all camps</button>
 <button (click)="flyer()" style="position: absolute; left: 10px;top: 240px;z-index: 2;">Focus on Kutupalong Camp</button>
 <button (click)="flyerCenter()" style="position: absolute; left: 10px;top: 270px;z-index: 2;">Focus on Center Camps</button>
@@ -21,7 +21,13 @@ style="position: absolute; right: 10px;bottom: 20px;z-index: 2;visibility: hidde
   </mat-form-field>
 
 <button class="button" type="submit" mat-stroked-button style="bottom: 5px;">Add Marker</button>
+<button class="button" mat-stroked-button style="bottom: 5px" (click)="showLocations()">Update Location View</button>
 </form>
+<button (click)="blocksView()" style="position: absolute; right: 10px;top: 300px;z-index: 2;">Blocks View</button>
+<button (click)="flyerSouth()" style="position: absolute; right: 10px;top: 330px;z-index: 2;">Voronoi View</button>
+<button (click)="flyerSouth()" style="position: absolute; right: 10px;top: 360px;z-index: 2;">Standard View</button>
+
+
 
 
 

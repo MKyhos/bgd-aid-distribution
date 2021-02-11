@@ -138,6 +138,43 @@ select sanitary_inspection_score as name, st_y(geom) as latitude, st_x(geom) as 
     return jsonify([{'name': r[0], 'latitude': r[1], 'longitude': r[2]} for r in results]), 200
 
 # Inserting into the DB and updating respective tables: working in separate python file so far but not with input from frontend
+
+
+
+@app.route('/buildings', methods=['GET', "POST"])
+def buildings():
+
+    query ="""
+    with builds as (select * from buildings where sblock_id = 'CXB-218_D088_05')
+    select way as geometry, dist_bath as count, area_sqm as id from osm_polygon right join builds on st_contains(osm_polygon.way, builds.geom) where building = 'yes'
+    """
+
+    # get results
+    with psycopg2.connect(host="database", port=5432, dbname="gis_db", user="gis_user", password="gis_pass") as conn:
+        with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+            cursor.execute(query)
+            results = cursor.fetchall()
+
+
+    # convert results to a GeoJSON
+    geojsons = []
+    for result in results:
+        geojsons.append({
+            "type": "Feature",
+            "properties": {
+                "name": result['id'],
+                "numbars": result['count']
+            },
+            "geometry": json.loads(result['geometry'])
+        })
+
+        # return all results as a feature collection
+    return jsonify({"type": "FeatureCollection", "features": geojsons
+        }), 200
+
+
+
+
 @app.route('/addPointInfo', methods=["GET", "POST"])
 def addPointInfo():
     latitude = request.get_json()["latitude"]
@@ -167,11 +204,38 @@ insert into geo_reach_infra (fid, class, contamination_risk_score, geom)
 SELECT max(gri.fid)+1, '{0}', '{1}', st_SETsrid(st_point({2}::float, {3}::float), 4326) 
 FROM geo_reach_infra gri""".format(class_mapping[amenity], sanitationScore, longitude, latitude)
 
-    with psycopg2.connect(host="localhost", port=25432, dbname="gis_db", user="gis_user", password="gis_pass") as conn:
+    with psycopg2.connect(host="database", port=5432, dbname="gis_db", user="gis_user", password="gis_pass") as conn:
         with conn.cursor() as cursor:
             cursor.execute(query)
             conn.commit()
     
+    return 'ok',200
+
+@app.route('/addPointMetaInfo', methods=["GET", "POST"])
+def addPointMetaInfo():
+
+    latitude = request.get_json()["latitude"]
+    longitude = request.get_json()["longitude"]
+    amenity = request.get_json()["amenity"]
+    sanitationScore = request.get_json()["sanitationScore"]
+
+    class_mapping = {
+        'tube': 'new_tubewell',
+        'heal': 'new_health_service',
+        'wpro': 'new_women_protection',
+        'nutr': 'new_nutrition_service',
+        'bath': 'new_bathing', 
+        'latr': 'new_latrine'
+    }
+
+    where_mapping = {
+      'heal': "gri.class = 'health_service' or gri.class = 'new_health_service'",
+      'wpro': "gri.class = 'women_protection' or gri.class = 'new_women_protection'",
+      'nutr': "gri.class = 'nutrition_service' or gri.class = 'new_nutrition_service'",
+      'bath': "(gri.class = 'sanitation' AND gri.type != 'latrine') or gri.class = 'new_bathing'", 
+      'latr': "(gri.class = 'sanitation' AND gri.type != 'bathing') or class = 'new_latrine'"
+    }
+
     if amenity == 'tube': 
         query2 = """
     UPDATE buildings AS b1
@@ -237,9 +301,9 @@ FROM geo_reach_infra gri""".format(class_mapping[amenity], sanitationScore, long
     FROM (SELECT camp_id, avg(dist_{0}) AS dist, sum(n_{0}) AS count, avg(pop_per{0}) AS pop FROM tbl_block_features t GROUP BY 1) AS t
     WHERE f.camp_id = t.camp_id""".format(amenity, where_mapping[amenity])
 
-    with psycopg2.connect(host="localhost", port=25432, dbname="gis_db", user="gis_user", password="gis_pass") as conn:
+    with psycopg2.connect(host="database", port=5432, dbname="gis_db", user="gis_user", password="gis_pass") as conn:
         with conn.cursor() as cursor:
             cursor.execute(query2)
             conn.commit()
     
-    pass
+    return 'ok',200

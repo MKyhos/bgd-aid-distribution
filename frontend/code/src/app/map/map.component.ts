@@ -28,6 +28,7 @@ export class MapComponent implements OnInit {
   private calculation:any;
   private formlat: any;
   private formlng: any;
+  private popup = L.popup();
   private indexdict: any = {'pop_female': 'female individuals',
                             'population': 'individuals',
                             'pop_endangered_flooding': 'individuals endangered by flooding',
@@ -84,7 +85,13 @@ export class MapComponent implements OnInit {
     longitude: number;
     amenity: string;
     sanitationScore: number;
-  }> = new EventEmitter<{ latitude: number; longitude: number; amenity: string; sanitationScore: number; }>();
+    adminLevel: string; 
+    unitInterest: string;
+    unitName: string;
+
+
+  }> = new EventEmitter<{ latitude: number; longitude: number; amenity: string; sanitationScore: number; adminLevel: string; 
+    unitInterest: string; unitName: string; }>();
 
   @Input()
   set healthLocations(
@@ -102,7 +109,11 @@ export class MapComponent implements OnInit {
       latitude: [],
       longitude: [],
       amenity: fb.control('pleasefindemeherre'),
-      sanitationScore: fb.control(1)
+      sanitationScore: fb.control(1),
+      adminLevel: [],
+      unitName: [],
+      unitInterest:[]
+
     });
   }
 
@@ -217,13 +228,25 @@ export class MapComponent implements OnInit {
   }
   showLocations(info= { adminLevel: this.adminLevel, unitName: this.layer.feature.properties.name, unitInterest: this.unitInterest}): void{
     this.locationAdded.emit(info);
+    this.popup.remove();
     
   }
 
-  onPtSubmit(pointInfo: {latitude: number; longitude: number; amenity: string; sanitationScore: number}): void {
+  onPtSubmit(pointInfo: {latitude: number; longitude: number; amenity: string; sanitationScore: number; adminLevel: string; unitInterest: string; unitName: string;}): void {
     this.pointInfoAdded.emit(pointInfo);
-    this.showLocations({ adminLevel: this.adminLevel, unitName: this.layer.feature.properties.name, unitInterest: this.unitInterest})
+    console.log(pointInfo.latitude);
+    
+    //L.marker(L.latLng(pointInfo.latitude, pointInfo.longitude)).addTo(this.healthLocations);
+      
+
+
     //console.log(pointInfo);
+  
+}
+
+  blocksView(){
+    console.log('hi');
+    
   }
 
   /**
@@ -410,16 +433,19 @@ export class MapComponent implements OnInit {
         this.layer = e.target;
 
 
-        var popup = L.popup();
+        
 
         const onMapClick = (e:any)=>{
-          popup
+          this.popup
           .setLatLng(e.latlng)
-          .setContent("Add a " +this.unitInterest+ " here at \n" + e.latlng.toString() + " by submitting the form below.") 
+          .setContent("Add a " +this.unitInterest+ " here by submitting the form below and updating the view.") 
           .openOn(this.map);
           this.pointForm.value.latitude = e.latlng.lat
           this.pointForm.value.longitude = e.latlng.lng
           this.pointForm.value.amenity = this.unitInterest
+          this.pointForm.value.adminLevel = this.adminLevel
+          this.pointForm.value.unitName = this.layer.feature.properties.name
+          this.pointForm.value.unitInterest = this.unitInterest
           //console.log(this.unitInterest);
           
           this.formChild.nativeElement.style.visibility = 'unset';
