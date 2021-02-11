@@ -25,8 +25,21 @@ export class MapComponent implements OnInit {
   private clickr: boolean = false;
   private adminLevel: any;
   private unitInterest: any;
+  private calculation:any;
   private formlat: any;
   private formlng: any;
+  private indexdict: any = {'pop_female': 'female individuals',
+                            'population': 'individuals',
+                            'pop_endangered_flooding': 'individuals endangered by flooding',
+                            'pop_perbuild': 'individuals per building',
+                            'tube': 'tubewells',
+                            'tube_risk': 'contaminated tubewells',
+                            'pop_endangered_tubewell': 'individuals endangered by contaminated tubewells',
+                            'latr': 'latrines',
+                            'bath': 'bathing facilities',
+                            'nutr': 'nutrition facilities',
+                            'wpro': 'women protection areas',
+                            'heal': 'health facilities'};
   @ViewChild('overview') child!:ElementRef<HTMLButtonElement>;
   @ViewChild('points') child2!:ElementRef<HTMLButtonElement>;
   @ViewChild('overviewCamps') child3!:ElementRef<HTMLButtonElement>;
@@ -217,7 +230,7 @@ export class MapComponent implements OnInit {
  * Add a GeoJSON FeatureCollection to this map
  * @param latitude
  */
-  public addGeoJSON(geojson: FeatureCollection, adminLevel: string, unitInterest: string): void {
+  public addGeoJSON(geojson: FeatureCollection, adminLevel: string, calculation: string, unitInterest: string): void {
     // find maximum numbars value in array
 
     
@@ -225,6 +238,9 @@ export class MapComponent implements OnInit {
 
     this.unitInterest = unitInterest;
     this.adminLevel = adminLevel;
+    this.calculation = calculation;
+
+    
     
     let max = d3.max(
       geojson.features.map((f: Feature<Geometry, any>) => +f.properties.numbars)
@@ -256,7 +272,7 @@ export class MapComponent implements OnInit {
 
     this.ctrl.onAdd = () => {
       this.div = L.DomUtil.create('div', 'info');
-      this.div.innerHTML += "Hover over the " + adminLevel + "s " + "to see the number of " + unitInterest + ".";
+      this.div.innerHTML += "Hover over the " + adminLevel + "s " + "to see the number of " + this.indexdict[unitInterest] + ".";
       L.DomEvent.disableClickPropagation(this.div);
       return this.div;
     }
@@ -279,9 +295,21 @@ export class MapComponent implements OnInit {
 
         if (!L.Browser.ie && !L.Browser.opera && !L.Browser.edge) {
           this.layer.bringToFront();
+
         }
 
-        this.div.innerHTML = adminLevel + " " + '<b>' + this.layer.feature.properties.name + '</b>' + " has " + '<b>' + this.layer.feature.properties.numbars + '</b>' + " " + unitInterest;
+        var calc
+
+        if(calculation== 'n_'){
+          calc = ' '
+        }else if(calculation== 'pop_per'){
+          calc = 'persons per '
+        }else if(calculation == 'dist_'){
+          calc = 'mean distance to the next '
+        }
+
+
+        this.div.innerHTML = adminLevel + " " + '<b>' + this.layer.feature.properties.name + '</b>' + " has " + '<b>' + this.layer.feature.properties.numbars + '</b>'+ " " + calc  + this.indexdict[unitInterest];
       }
     }
 
@@ -302,17 +330,48 @@ export class MapComponent implements OnInit {
       }
       console.log(max);
       
-      var div = L.DomUtil.create('div', 'legend'),
-        grades = [0, Math.round(max / 8),
+      var div = L.DomUtil.create('div', 'legend')
+
+
+
+
+      var indexdict: any = {'pop_female': 'female individuals',
+      'population': 'individuals',
+      'pop_endangered_flooding': 'endangered by flooding',
+      'pop_perbuild': 'individuals per building',
+      'tube': 'tubewells',
+      'tube_risk': 'contaminated tubewells',
+      'pop_endangered_tubewell': 'endangered by contamination',
+      'latr': 'latrines',
+      'bath': 'bathing facilities',
+      'nutr': 'nutrition facilities',
+      'wpro': 'women protection areas',
+      'heal': 'health facilities'};
+
+      var countdict: any = {'n_': 'count',
+                            "dist_": "average distance to",
+                            "pop_per": "persons per"}
+      console.log(countdict[calculation]);
+      
+
+
+      if(max/8 < 1){
+        var grades = [Math.round(max / 8),
+        Math.round(max / (8 / 4)),
+        Math.round(max)]
+      }else{
+        var grades = [0, 
+          Math.round(max / 8),
           Math.round(max / (8 / 2)),
           Math.round(max / (8 / 3)),
           Math.round(max / (8 / 4)),
           Math.round(max / (8 / 5)),
           Math.round(max / (8 / 6)),
-          Math.round(max / (8 / 7)), Math.round(max)],
-        labels = [];
+          Math.round(max / (8 / 7)), 
+          Math.round(max)]
+        };
 
-      div.innerHTML += '<h4>' + unitInterest + '</h4>';
+      div.innerHTML += '<h4>' + countdict[calculation]+ " " + indexdict[unitInterest] + '</h4>';
       // loop through our density intervals and generate a label with a colored square for each interval
       for (var i = 0; i < grades.length; i++) {
         div.innerHTML +=

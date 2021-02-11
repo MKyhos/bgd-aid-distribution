@@ -8,6 +8,8 @@ import { FormBuilder, FormGroup,  Validators } from '@angular/forms';
 })
 export class SettingsComponent {
   // this output can be listened to in the parent component
+  public calc: any;
+
   @Output()
   markerAdded: EventEmitter<{
     latitude: number;
@@ -109,18 +111,22 @@ export class SettingsComponent {
 
   onAdSubmit(adminLevel: { adminLevel: string; calculation: string; unitInterest: string}): void {
     if(adminLevel.unitInterest == 'population'|| adminLevel.unitInterest == 'pop_female' || adminLevel.unitInterest == 'pop_endangered_tubewell' || adminLevel.unitInterest == 'pop_endangered_flooding' || adminLevel.unitInterest == 'pop_perbuild' || adminLevel.unitInterest == 'tube_risk'){
+      this.calc = adminLevel.calculation
       adminLevel.calculation='n_';
-      this.adminForm.controls.calculation.disable()}
+      this.adminForm.controls.calculation.disable();
+      this.adminLevelAdded.emit(adminLevel);
+    }
+    else{
+      this.adminForm.controls.calculation.enable();
+      console.log(adminLevel.calculation);
       
-// not needed anymore since the values in the db have been corrected:
-    // else if(adminLevel.unitInterest == 'wpro'||adminLevel.unitInterest == 'heal'||adminLevel.unitInterest == 'nutr'){
-    //   adminLevel.calculation = 'dist_'
-    //   this.adminForm.controls.calculation.disable(); 
-    // }  
-    
-    this.adminLevelAdded.emit(adminLevel);
-    
-    //console.log(adminLevel);
+      if (adminLevel.calculation== null){
+        console.log('isnull');
+        
+      adminLevel.calculation=this.calc;}
+      
+      this.adminLevelAdded.emit(adminLevel);
+    }
   }
 
   onHtSubmit(healthLocation: { healthLocation: string}): void {

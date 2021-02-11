@@ -33,7 +33,7 @@ export class AppComponent {
   // set initial admin level and unit of interest to be loaded
   ngAfterViewInit(): void {
     this.dataservice.getAdminLevel('camp', 'n_' ,'tube').subscribe((geojson: FeatureCollection)=>{
-      this.map.addGeoJSON(geojson, 'camp' ,'tube');
+      this.map.addGeoJSON(geojson, 'camp', 'n_' ,'tube');
       //console.log(this.adminLevel);
 
     });
@@ -68,7 +68,9 @@ export class AppComponent {
     //console.log(unitInterest);
     // marker for hover
     this.dataservice.getAdminLevel($event.adminLevel, $event.calculation, $event.unitInterest).subscribe((geojson: FeatureCollection)=>{
-      this.map.addGeoJSON(geojson, $event.adminLevel, $event.unitInterest);
+      this.map.addGeoJSON(geojson, $event.adminLevel, $event.calculation, $event.unitInterest);
+      console.log($event.calculation);
+      
       //console.log(this.adminLevel);
 
     });
