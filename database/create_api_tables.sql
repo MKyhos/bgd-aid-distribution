@@ -28,7 +28,7 @@ CREATE TABLE tbl_sblock_features AS (
   coalesce(b.n_pop_female, 0) AS n_pop_female, 
   coalesce(b.pop_perBuild, 0) AS pop_perBuild, 
   coalesce((b.n_population / (st_area(g.geom) / 1000)),0) as pop_perArea, 
-  coalesce(b.count_buildings, 0) as count_buildings,
+  coalesce(b.n_buildings, 0) as n_buildings,
   coalesce(b.dist_bath, 0) AS dist_bath,
   coalesce(b.dist_latr, 0) AS dist_latr,
   coalesce(b.dist_tube, 0) AS dist_tube,
@@ -49,7 +49,7 @@ CREATE TABLE tbl_sblock_features AS (
       Avg(dist_heal) AS dist_heal,
       Avg(dist_nutr) AS dist_nutr,
       Avg(dist_wpro) AS dist_wpro,
-      Cast(Count(*) AS integer) AS count_buildings
+      Cast(Count(*) AS integer) AS n_buildings
     FROM buildings
     GROUP BY 1, 2, 3
   ) AS b on b.sblock_id = g.sblock_id
@@ -75,13 +75,13 @@ ALTER TABLE tbl_sblock_features
  
  WITH fl AS (
   SELECT ga.sblock_id,
-    Count(*) FILTER (WHERE gri.class = 'sanitation' AND gri.type IN ('both', 'latrine')) AS latr,
-    Count(*) FILTER (WHERE gri.class = 'sanitation' AND gri.type IN ('both', 'bathing')) AS bath,
-    Count(*) FILTER (WHERE gri.class = 'health_service') AS heal,
-    Count(*) FILTER (WHERE gri.class = 'nutrition_serivice') AS nutr,
-    Count(*) FILTER (WHERE gri.class = 'women_protection') AS wpro,
-    Count(*) FILTER (WHERE gri.class = 'tubewell') AS tube,
-    Count(*) FILTER (WHERE gri.class = 'tubewell' and gri.contamination_risk_score in ('high', 'very high', 'intermediate')) AS tube_risk
+    Count(gri.fid) FILTER (WHERE gri.class = 'sanitation' AND gri.type IN ('both', 'latrine')) AS latr,
+    Count(gri.fid) FILTER (WHERE gri.class = 'sanitation' AND gri.type IN ('both', 'bathing')) AS bath,
+    Count(gri.fid) FILTER (WHERE gri.class = 'health_service') AS heal,
+    Count(gri.fid) FILTER (WHERE gri.class = 'nutrition_serivice') AS nutr,
+    Count(gri.fid) FILTER (WHERE gri.class = 'women_protection') AS wpro,
+    Count(gri.fid) FILTER (WHERE gri.class = 'tubewell') AS tube,
+    Count(gri.fid) FILTER (WHERE gri.class = 'tubewell' and gri.contamination_risk_score in ('high', 'very high', 'intermediate')) AS tube_risk
   FROM geo_reach_infra AS gri
   JOIN geo_admin AS ga ON ST_Within(gri.geom, ga.geom)
   GROUP BY 1
@@ -107,7 +107,7 @@ with buildings_affected as (
     group by sblock_id
 ),
 percent_flooded as (
-  select dsf.sblock_id, ((100 / dsf.count_buildings) * ba.flooded) as flooded_perc
+  select dsf.sblock_id, ((100 / dsf.n_buildings) * ba.flooded) as flooded_perc
   from tbl_sblock_features as dsf natural join  buildings_affected as ba
 )
 update tbl_sblock_features 
@@ -192,7 +192,7 @@ CREATE TABLE public.tbl_block_features AS (
     coalesce(b.dist_nutr,0) as dist_nutr, 
     coalesce(b.dist_wpro,0) as dist_wpro, 
     coalesce(b.dist_tube,0) as dist_tube, 
-    coalesce(b.count_buildings,0) as count_buildings, 
+    coalesce(b.n_buildings,0) as n_buildings, 
     sb.n_bath, sb.n_latr, sb.n_tube, sb.n_tube_risk, sb.perc_tube_risk,
     sb.pop_endangered, sb.n_heal, sb.n_nutr, sb.n_wpro, 
     sb.pop_perBath, sb.pop_perLatr, sb.pop_perTube, sb.pop_perHeal, sb.pop_perNutr, sb.pop_perWpro,    
@@ -225,7 +225,7 @@ CREATE TABLE public.tbl_block_features AS (
                     Avg(dist_nutr) AS dist_nutr,
                     Avg(dist_wpro) AS dist_wpro,
                     Avg(dist_tube) AS dist_tube,
-                    Count(*)::int AS count_buildings,
+                    Count(*)::int AS n_buildings,
                     Avg(n_population) as pop_perBuild
              FROM buildings
              GROUP BY 1) AS b on sb.block_id = b.block_id
@@ -242,7 +242,7 @@ with buildings_affected as (
     group by block_id
 ),
 percent_flooded as (
-  select dsf.block_id, ((100 / dsf.count_buildings) * ba.flooded) as flooded_perc
+  select dsf.block_id, ((100 / dsf.n_buildings) * ba.flooded) as flooded_perc
   from tbl_block_features as dsf natural join  buildings_affected as ba
 )
 update tbl_block_features 
@@ -270,7 +270,7 @@ CREATE TABLE public.tbl_camp_features AS (
     coalesce(b.dist_nutr,0) as dist_nutr, 
     coalesce(b.dist_wpro,0) as dist_wpro, 
     coalesce(b.dist_tube,0) as dist_tube, 
-    coalesce(b.count_buildings,0) as count_buildings, 
+    coalesce(b.n_buildings,0) as n_buildings, 
     sb.n_bath, sb.n_latr, sb.n_tube, sb.n_tube_risk, sb.perc_tube_risk,
     sb.pop_endangered, sb.n_heal, sb.n_nutr, sb.n_wpro, 
     sb.pop_perBath, sb.pop_perLatr, sb.pop_perTube, sb.pop_perHeal, sb.pop_perNutr, sb.pop_perWpro,    
@@ -306,7 +306,7 @@ CREATE TABLE public.tbl_camp_features AS (
       Avg(dist_nutr) AS dist_nutr,
       Avg(dist_wpro) AS dist_wpro,
       Avg(dist_tube) AS dist_tube,
-      Count(*)::int AS count_buildings,
+      Count(*)::int AS n_buildings,
       Avg(n_population) as pop_perBuild
     FROM buildings
     GROUP BY 1
@@ -324,7 +324,7 @@ with buildings_affected as (
     group by camp_id
 ),
 percent_flooded as (
-  select dsf.camp_id, ((100 / dsf.count_buildings) * ba.flooded) as flooded_perc
+  select dsf.camp_id, ((100 / dsf.n_buildings) * ba.flooded) as flooded_perc
   from tbl_camp_features dsf natural join  buildings_affected as ba
 )
 update tbl_camp_features 
