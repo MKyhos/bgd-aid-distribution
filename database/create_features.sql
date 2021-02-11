@@ -23,8 +23,9 @@ CREATE TABLE buildings AS (
     g.camp_id AS camp_id,
     g.block_id AS block_id,
     g.sblock_id AS sblock_id,
-    ST_Area(way) AS area_sqm,
-    ST_Centroid(o.way) AS geom
+    ST_Area(way::geography) AS area_sqm, 
+    ST_Centroid(o.way) AS geom,
+    o.way as poly
   FROM osm_polygon AS o
   JOIN geo_admin AS g ON ST_Intersects(o.way, g.geom)
   WHERE building IN ('yes', 'hut', 'residential', 'house', 'apartments')
