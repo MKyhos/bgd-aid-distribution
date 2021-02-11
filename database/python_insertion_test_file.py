@@ -1,7 +1,7 @@
 #python file to test insertion and updates for the db 
 
 import psycopg2
-FROM psycopg2.extras import RealDictCursor
+from psycopg2.extras import RealDictCursor
 
 class_mapping = {
       'tube': 'new_tubewell',
@@ -21,7 +21,7 @@ where_mapping = {
     }
 
 # example: should eventually be replaced with values from request.get_json()
-amenity = 'heal'
+amenity = 'wpro'
 sanitationScore = ''
 latitude = '20.989767'
 longitude = '92.248002'
@@ -52,7 +52,7 @@ if amenity == 'tube':
     FROM (SELECT sblock_id, avg(dist_tube) AS dist FROM buildings GROUP BY 1) AS b,
       (SELECT sblock_id,
       Count(gri.fid) FILTER (WHERE gri.class = 'tubewell' or gri.class = 'new_tubewell') AS tube,
-      Count(gri.fid) FILTER (WHERE gri.class = 'tubewell' or gri.class = 'new_tubewell' AND gri.contamination_risk_score IN ('high', 'very high', 'intermediate')) AS tube_risk
+      Count(gri.fid) FILTER ((WHERE gri.class = 'tubewell' or gri.class = 'new_tubewell') AND gri.contamination_risk_score IN ('high', 'very high', 'intermediate')) AS tube_risk
       FROM geo_reach_infra AS gri JOIN geo_admin AS ga ON ST_Within(gri.geom, ga.geom)
       WHERE gri.class = 'tubewell' or gri.class = 'new_tubewell'
       GROUP BY 1) AS n,
@@ -96,7 +96,7 @@ else: query2 = """
     UPDATE tbl_block_features f
     SET dist_{0} = t.dist, n_{0} = t.count, pop_per{0} = t.pop
     FROM (SELECT block_id, avg(dist_{0}) AS dist, sum(n_{0}) AS count, avg(pop_per{0}) AS pop FROM tbl_sblock_features t GROUP BY 1) AS t
-    WHERE f.block_id = t.block_id
+    WHERE f.block_id = t.block_id;
 
     UPDATE tbl_camp_features f
     SET dist_{0} = t.dist, n_{0} = t.count, pop_per{0} = t.pop

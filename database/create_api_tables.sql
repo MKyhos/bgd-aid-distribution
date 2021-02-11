@@ -26,8 +26,8 @@ CREATE TABLE tbl_sblock_features AS (
   SELECT g.*, 
   coalesce(b.n_population, 0) as n_population, 
   coalesce(b.n_pop_female, 0) AS n_pop_female, 
-  coalesce(b.pop_perBuild, 0) AS pop_perBuild, 
-  coalesce((b.n_population / (st_area(g.geom) / 1000)),0) as pop_perArea, 
+  coalesce(b.n_pop_perbuild, 0) AS n_pop_perbuild, 
+  coalesce((b.n_population / (st_area(g.geom::geography) / 1000000)),0) as n_pop_perarea, 
   coalesce(b.n_buildings, 0) as n_buildings,
   coalesce(b.dist_bath, 0) AS dist_bath,
   coalesce(b.dist_latr, 0) AS dist_latr,
@@ -42,7 +42,7 @@ CREATE TABLE tbl_sblock_features AS (
       sblock_id,
       Round(Sum(n_population), 0) AS n_population,
       Round(Sum(n_pop_female), 0) AS n_pop_female,
-      avg(n_population) AS pop_perBuild, --population density: average population count per building
+      avg(n_population) AS n_pop_perbuild, --population density: average population count per building
       Avg(dist_bath) AS dist_bath,
       Avg(dist_latr) AS dist_latr,
       Avg(dist_tube) AS dist_tube,
@@ -56,13 +56,14 @@ CREATE TABLE tbl_sblock_features AS (
 );
 
 ALTER TABLE tbl_sblock_features
-  add column flooded_perc float8 default 0, 
+  add column perc_flooded float8 default 0, 
+  add column n_pop_endangered_flooding float8 default 0,
   ADD COLUMN n_bath int default 0,
   ADD COLUMN n_latr int default 0,
   ADD COLUMN n_tube int default 0,
   ADD COLUMN n_tube_risk int default 0,  
   add column perc_tube_risk float8 default 0,
-  ADD COLUMN pop_endangered float8 default 0, 
+  ADD COLUMN n_pop_endangered_tubewell float8 default 0, 
   ADD COLUMN n_heal int default 0,
   ADD COLUMN n_nutr int default 0,
   ADD COLUMN n_wpro int default 0,
@@ -101,19 +102,21 @@ UPDATE tbl_sblock_features AS dsf
  
 --aggregate flood data per sblock: 
 with buildings_affected as (
-    select sblock_id, count(id)::float as flooded
+    select sblock_id, count(id)::float as flooded, sum(n_population) as n_pop_endangered_flooding
     from buildings
     where count_flooded >= 1
     group by sblock_id
 ),
 percent_flooded as (
-  select dsf.sblock_id, ((100 / dsf.n_buildings) * ba.flooded) as flooded_perc
+  select dsf.sblock_id, ((100 / dsf.n_buildings) * ba.flooded) as perc_flooded
   from tbl_sblock_features as dsf natural join  buildings_affected as ba
 )
 update tbl_sblock_features 
-set flooded_perc = percent_flooded.flooded_perc
-from percent_flooded
-where tbl_sblock_features.sblock_id = percent_flooded.sblock_id;
+set perc_flooded = percent_flooded.perc_flooded,
+    n_pop_endangered_flooding = ba.n_pop_endangered_flooding
+from percent_flooded, buildings_affected ba
+where tbl_sblock_features.sblock_id = percent_flooded.sblock_id
+  and tbl_sblock_features.sblock_id = ba.sblock_id;
 
 --aggregate the number of people per amenity:
 /*UPDATE tbl_sblock_features 
@@ -123,7 +126,7 @@ where tbl_sblock_features.sblock_id = percent_flooded.sblock_id;
     pop_perNutr = population / nullif(n_nutr, 0),
     wmn_perWpro = pop_female / nullif(n_wpro, 0),
     pop_perTube = population / nullif(n_tube, 0),
-    pop_endangered = population * perc_tube_risk / 100,
+    n_pop_endangered_tubewell = population * perc_tube_risk / 100,
     pop_perBath = population / nullif(n_bath, 0);*/
 
 --can take ~10 minutes: 
@@ -131,7 +134,7 @@ update tbl_sblock_features t
 set pop_perBath = vb.pop, 
     pop_perLatr = vl.pop, 
     pop_perTube = vt.pop,
-    pop_endangered = r.pop_endangered,
+    n_pop_endangered_tubewell = r.n_pop_endangered_tubewell,
     pop_perHeal = vh.pop, 
     pop_perNutr = vn.pop, 
     pop_perWpro = vw.pop
@@ -147,7 +150,7 @@ from (select t.sblock_id, coalesce(avg(v.pop_perBath),0) as pop
       from tbl_sblock_features t 
       left join voronoi_tube_pop v on st_intersects(t.geom, v.point)
       group by t.sblock_id) as vt,
-     (select t.sblock_id, coalesce(sum(v.pop_perTube),0) as pop_endangered 
+     (select t.sblock_id, coalesce(sum(v.pop_perTube),0) as n_pop_endangered_tubewell 
       from tbl_sblock_features t
       left join voronoi_tube_pop v on st_intersects(t.geom, v.point)
       where contamination_risk_score in ('very high', 'high', 'intermediate')
@@ -185,7 +188,7 @@ ALTER TABLE tbl_sblock_features
 
 CREATE TABLE public.tbl_block_features AS (
   SELECT sb.camp_id, sb.block_id, sb.n_population, sb.n_pop_female, 
-    coalesce(b.pop_perBuild, 0) as pop_perbuild, (sb.n_population / st_area(sb.geom)) as pop_perArea,
+    coalesce(b.n_pop_perbuild, 0) as n_pop_perbuild, (sb.n_population / (st_area(sb.geom::geography) / 1000000)) as n_pop_perarea,
     coalesce(b.dist_heal,0) as dist_heal, 
     coalesce(b.dist_bath,0) as dist_bath, 
     coalesce(b.dist_latr,0) as dist_latr, 
@@ -194,7 +197,7 @@ CREATE TABLE public.tbl_block_features AS (
     coalesce(b.dist_tube,0) as dist_tube, 
     coalesce(b.n_buildings,0) as n_buildings, 
     sb.n_bath, sb.n_latr, sb.n_tube, sb.n_tube_risk, sb.perc_tube_risk,
-    sb.pop_endangered, sb.n_heal, sb.n_nutr, sb.n_wpro, 
+    sb.n_pop_endangered_tubewell, sb.n_heal, sb.n_nutr, sb.n_wpro, 
     sb.pop_perBath, sb.pop_perLatr, sb.pop_perTube, sb.pop_perHeal, sb.pop_perNutr, sb.pop_perWpro,    
     sb.geom
   FROM (SELECT camp_id, block_id,
@@ -211,7 +214,7 @@ CREATE TABLE public.tbl_block_features AS (
           avg(pop_perBath) as pop_perBath,
           avg(pop_perLatr) as pop_perLatr,
           avg(pop_perTube) as pop_perTube,
-          sum(pop_endangered) as pop_endangered,
+          sum(n_pop_endangered_tubewell) as n_pop_endangered_tubewell,
           avg(pop_perHeal) as pop_perHeal,
           avg(pop_perNutr) as pop_perNutr,
           avg(pop_perWpro) as pop_perWpro,    
@@ -226,29 +229,32 @@ CREATE TABLE public.tbl_block_features AS (
                     Avg(dist_wpro) AS dist_wpro,
                     Avg(dist_tube) AS dist_tube,
                     Count(*)::int AS n_buildings,
-                    Avg(n_population) as pop_perBuild
+                    Avg(n_population) as n_pop_perbuild
              FROM buildings
              GROUP BY 1) AS b on sb.block_id = b.block_id
 );
 
 --aggregate flood data per block: 
 alter table tbl_block_features 
-add column flooded_perc float8 default 0;
+add column perc_flooded float8 default 0,
+add column n_pop_endangered_flooding float8 default 0;
 
 with buildings_affected as (
-    select block_id, count(id)::float as flooded
+    select block_id, count(id)::float as flooded, sum(n_population) as n_pop_endangered_flooding
     from buildings
     where count_flooded >= 1
     group by block_id
 ),
 percent_flooded as (
-  select dsf.block_id, ((100 / dsf.n_buildings) * ba.flooded) as flooded_perc
+  select dsf.block_id, ((100 / dsf.n_buildings) * ba.flooded) as perc_flooded
   from tbl_block_features as dsf natural join  buildings_affected as ba
 )
 update tbl_block_features 
-set flooded_perc = percent_flooded.flooded_perc
-from percent_flooded
-where tbl_block_features.block_id = percent_flooded.block_id;
+set perc_flooded = percent_flooded.perc_flooded,
+    n_pop_endangered_flooding = ba.n_pop_endangered_flooding
+from percent_flooded, buildings_affected ba
+where tbl_block_features.block_id = percent_flooded.block_id
+  and tbl_block_features.block_id = ba.block_id;
 
 -- setting the srid correctly, adding a primary key:
 ALTER TABLE tbl_block_features/*
@@ -263,7 +269,7 @@ ALTER TABLE tbl_block_features/*
 
 CREATE TABLE public.tbl_camp_features AS (
   SELECT b.camp_id, sb.n_population, sb.n_pop_female, 
-    coalesce(b.pop_perBuild, 0) as pop_perbuild, (sb.n_population / st_area(sb.geom)) as pop_perArea,
+    coalesce(b.n_pop_perbuild, 0) as n_pop_perbuild, (sb.n_population / (st_area(sb.geom::geography) / 1000000)) as n_pop_perarea,
     coalesce(b.dist_heal,0) as dist_heal, 
     coalesce(b.dist_bath,0) as dist_bath, 
     coalesce(b.dist_latr,0) as dist_latr, 
@@ -272,7 +278,7 @@ CREATE TABLE public.tbl_camp_features AS (
     coalesce(b.dist_tube,0) as dist_tube, 
     coalesce(b.n_buildings,0) as n_buildings, 
     sb.n_bath, sb.n_latr, sb.n_tube, sb.n_tube_risk, sb.perc_tube_risk,
-    sb.pop_endangered, sb.n_heal, sb.n_nutr, sb.n_wpro, 
+    sb.n_pop_endangered_tubewell, sb.n_heal, sb.n_nutr, sb.n_wpro, 
     sb.pop_perBath, sb.pop_perLatr, sb.pop_perTube, sb.pop_perHeal, sb.pop_perNutr, sb.pop_perWpro,    
     sb.geom
   FROM (
@@ -290,7 +296,7 @@ CREATE TABLE public.tbl_camp_features AS (
       avg(pop_perBath) as pop_perBath,
       avg(pop_perLatr) as pop_perLatr,
       avg(pop_perTube) as pop_perTube,
-      sum(pop_endangered) as pop_endangered,
+      sum(n_pop_endangered_tubewell) as n_pop_endangered_tubewell,
       avg(pop_perHeal) as pop_perHeal,
       avg(pop_perNutr) as pop_perNutr,
       avg(pop_perWpro) as pop_perWpro,    
@@ -307,7 +313,7 @@ CREATE TABLE public.tbl_camp_features AS (
       Avg(dist_wpro) AS dist_wpro,
       Avg(dist_tube) AS dist_tube,
       Count(*)::int AS n_buildings,
-      Avg(n_population) as pop_perBuild
+      Avg(n_population) as n_pop_perbuild
     FROM buildings
     GROUP BY 1
   ) AS b on sb.camp_id = b.camp_id
@@ -315,22 +321,25 @@ CREATE TABLE public.tbl_camp_features AS (
 
 --aggregate flood data per camp: 
 alter table tbl_camp_features 
-add column flooded_perc float8 default 0;
+add column perc_flooded float8 default 0,
+add column n_pop_endangered_flooding float8 default 0;
 
 with buildings_affected as (
-    select camp_id, count(id)::float as flooded
+    select camp_id, count(id)::float as flooded, sum(n_population) as n_pop_endangered_flooding
     from buildings
     where count_flooded >= 1
     group by camp_id
 ),
 percent_flooded as (
-  select dsf.camp_id, ((100 / dsf.n_buildings) * ba.flooded) as flooded_perc
-  from tbl_camp_features dsf natural join  buildings_affected as ba
+  select dsf.camp_id, ((100 / dsf.n_buildings) * ba.flooded) as perc_flooded
+  from tbl_camp_features as dsf natural join  buildings_affected as ba
 )
 update tbl_camp_features 
-set flooded_perc = percent_flooded.flooded_perc
-from percent_flooded
-where tbl_camp_features.camp_id = percent_flooded.camp_id;
+set perc_flooded = percent_flooded.perc_flooded,
+    n_pop_endangered_flooding = ba.n_pop_endangered_flooding
+from percent_flooded, buildings_affected ba
+where tbl_camp_features.camp_id = percent_flooded.camp_id
+  and tbl_camp_features.camp_id = ba.camp_id;
 
 -- Setting the srid correctly, add primary key:
 ALTER TABLE tbl_camp_features/*
