@@ -12,11 +12,11 @@ create view voronoi_bath as (
   SELECT gri.fid, gri.geom as point, ST_Intersection(dmp.geom, o.geom) AS geom
   FROM (SELECT ST_Collect(geom) AS geom
         FROM   geo_reach_infra
-        WHERE class = 'sanitation' AND type != 'latrine') t,   
+        WHERE (class = 'sanitation' AND type != 'latrine') or class = 'new_bathing') t,   
     LATERAL ST_Dump(ST_VoronoiPolygons(t.geom)) AS dmp
     join geo_reach_infra gri on st_intersects(dmp.geom, gri.geom)
     JOIN outline AS o ON ST_Intersects(dmp.geom, o.geom)
-  WHERE gri.class = 'sanitation' AND gri.type != 'latrine'
+  WHERE (gri.class = 'sanitation' AND gri.type != 'latrine') or class = 'new_bathing'
 );
 
 create view voronoi_bath_pop as (
@@ -32,11 +32,11 @@ create view voronoi_latr as (
   SELECT gri.fid, gri.geom as point, ST_Intersection(dmp.geom, o.geom) AS geom
   FROM (SELECT ST_Collect(geom) AS geom
         FROM   geo_reach_infra
-        where class = 'sanitation' AND type != 'bathing') t,   
+        where (class = 'sanitation' AND type != 'bathing') or class = 'new_latrine') t,   
     LATERAL ST_Dump(ST_VoronoiPolygons(t.geom)) AS dmp
     join geo_reach_infra gri on st_intersects(dmp.geom, gri.geom)
     JOIN outline AS o ON ST_Intersects(dmp.geom, o.geom)
-  where gri.class = 'sanitation' AND gri.type != 'bathing'
+  where (gri.class = 'sanitation' AND gri.type != 'bathing') or class = 'new_latrine'
 );
 
 create view voronoi_latr_pop as (
@@ -52,11 +52,11 @@ create view voronoi_tube as (
   SELECT gri.fid, gri.contamination_risk_score, gri.geom as point, ST_Intersection(dmp.geom, o.geom) AS geom
   FROM (SELECT ST_Collect(geom) AS geom
         FROM   geo_reach_infra
-        where class = 'tubewell') t,   
+        where class = 'tubewell' or class = 'new_tubewell') t,   
     LATERAL ST_Dump(ST_VoronoiPolygons(t.geom)) AS dmp
     join geo_reach_infra gri on st_intersects(dmp.geom, gri.geom)
     JOIN outline AS o ON ST_Intersects(dmp.geom, o.geom)
-  where gri.class = 'tubewell'
+  where gri.class = 'tubewell' or class = 'new_tubewell'
 );
 
 create view voronoi_tube_pop as (
@@ -72,11 +72,11 @@ create view voronoi_heal as (
   SELECT gri.fid, gri.geom as point, ST_Intersection(dmp.geom, o.geom) AS geom
   FROM (SELECT ST_Collect(geom) AS geom
         FROM   geo_reach_infra
-        where class = 'health_service') t,   
+        where class = 'health_service' or class = 'new_health_service') t,   
     LATERAL ST_Dump(ST_VoronoiPolygons(t.geom)) AS dmp
     join geo_reach_infra gri on st_intersects(dmp.geom, gri.geom)
     JOIN outline AS o ON ST_Intersects(dmp.geom, o.geom)
-  where gri.class = 'health_service'
+  where gri.class = 'health_service' or class = 'new_health_service'
 );
 
 create view voronoi_heal_pop as (
@@ -92,11 +92,11 @@ create view voronoi_nutr as (
   SELECT gri.fid, gri.geom as point, ST_Intersection(dmp.geom, o.geom) AS geom --somehow one of the voronois is missing in the middle
   FROM (SELECT ST_Collect(geom) AS geom
         FROM   geo_reach_infra
-        where class = 'nutrition_service') t,   
+        where class = 'nutrition_service' or class = 'new_nutrition_service') t,   
     LATERAL ST_Dump(ST_VoronoiPolygons(t.geom)) AS dmp
     join geo_reach_infra gri on st_intersects(dmp.geom, gri.geom)
     JOIN outline AS o ON st_intersects(dmp.geom, o.geom)
-  where gri.class = 'nutrition_service'
+  where gri.class = 'nutrition_service' or class = 'new_nutrition_service'
 ); 
 
 create view voronoi_nutr_pop as (
@@ -112,11 +112,11 @@ create view voronoi_wpro as (
   SELECT gri.fid, gri.geom as point, ST_Intersection(dmp.geom, o.geom) AS geom
   FROM (SELECT ST_Collect(geom) AS geom
         FROM   geo_reach_infra
-        where class = 'women_protection') t,   
+        where class = 'women_protection' or class = 'new_women_protection') t,   
     LATERAL ST_Dump(ST_VoronoiPolygons(t.geom)) AS dmp
     join geo_reach_infra gri on st_intersects(dmp.geom, gri.geom)
     JOIN outline AS o ON ST_Intersects(dmp.geom, o.geom)
-  where gri.class = 'women_protection'
+  where gri.class = 'women_protection' or class = 'new_women_protection'
 );
 
 create view voronoi_wpro_pop as (
